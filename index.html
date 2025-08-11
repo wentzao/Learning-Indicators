@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>學習指標手冊</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", Arial, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* 左側縮圖列表 */
+        .sidebar {
+            width: 220px;
+            background: #3a3f45;
+            padding: 20px 15px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: #2a2f35;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #666;
+            border-radius: 3px;
+        }
+
+        .thumbnail-item {
+            margin-bottom: 15px;
+            cursor: pointer;
+            position: relative;
+            border: 2px solid transparent;
+            border-radius: 4px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        .thumbnail-item:hover {
+            border-color: #4a90e2;
+            transform: scale(1.02);
+        }
+
+        .thumbnail-item.active {
+            border-color: #4a90e2;
+            box-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
+        }
+
+        .thumbnail-item img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .thumbnail-number {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        /* 主要顯示區域 */
+        .main-display {
+            flex: 1;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+
+
+        /* 學習指標工作列 */
+        .indicator-toolbar {
+            background: #34495e;
+            padding: 12px 20px;
+            border-bottom: 1px solid #2c3e50;
+            overflow-x: auto;
+            overflow-y: hidden;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .indicator-toolbar::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .indicator-toolbar::-webkit-scrollbar-track {
+            background: #2c3e50;
+        }
+
+        .indicator-toolbar::-webkit-scrollbar-thumb {
+            background: #4a90e2;
+            border-radius: 2px;
+        }
+
+        .indicator-nav {
+            display: flex;
+            gap: 8px;
+            min-width: max-content;
+        }
+
+        .indicator-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .indicator-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .indicator-btn.active {
+            background: #3498db;
+            border-color: #3498db;
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+        }
+
+        .indicator-icon {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .page-number {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-left: 4px;
+        }
+
+
+
+        /* 圖片容器 - 垂直滾動模式 */
+        .image-container {
+            flex: 1;
+            background: #fafafa;
+            position: relative;
+            overflow-y: auto;
+            overflow-x: auto; /* 允許水平滾動以支援縮放 */
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch; /* iOS Safari 滑動優化 */
+            scroll-snap-type: y proximity; /* 輕微的滾動吸附效果 */
+            touch-action: pan-x pan-y pinch-zoom; /* 啟用雙指縮放和滑動 */
+        }
+
+        .images-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            min-height: 100%;
+            transform-origin: center top; /* 縮放中心點設為頂部中央 */
+            transition: transform 0.1s ease-out; /* 平滑縮放動畫 */
+        }
+
+        /* 手機版調整圖片間距 */
+        @media (max-width: 768px) {
+            .images-wrapper {
+                gap: 0; /* 手機版圖片間距更緊密 */
+            }
+        }
+
+        .image-page {
+            width: 100%;
+            min-height: calc(100vh - 120px); /* 扣除indicator-toolbar和status-bar的高度 */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* 改為頂端對齊 */
+            padding: 10px 20px; /* 減少頂部和底部padding */
+            box-sizing: border-box;
+            position: relative;
+            scroll-snap-align: start; /* 滾動吸附到頁面開始位置 */
+        }
+
+        .image-page img {
+            max-width: 85%;
+            max-height: calc(100vh - 200px); /* 動態計算最大高度，扣除工具列、狀態列和padding */
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            object-position: top; /* 圖片內容對齊頂部 */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            display: block;
+            margin: 0 auto; /* 只在水平方向居中 */
+        }
+
+
+
+        /* 底部狀態列 */
+        .status-bar {
+            background: #f0f0f0;
+            padding: 10px 20px;
+            border-top: 1px solid #ddd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            color: #666;
+            position: sticky;
+            bottom: 0;
+            z-index: 100;
+        }
+
+
+
+        /* Loading 動畫 */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4a90e2;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 錯誤訊息 */
+        .error-placeholder {
+            width: 100%;
+            max-width: 400px;
+            height: 300px;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 16px;
+            border: 2px dashed #ddd;
+            border-radius: 4px;
+        }
+
+        /* 手機版收闔按鈕 - 預設隱藏 */
+        .mobile-toggle {
+            display: none;
+        }
+
+        /* 手機版懸浮toolbar - 預設隱藏 */
+        .mobile-floating-toolbar {
+            display: none;
+        }
+        
+        /* 手機版分類選單 - 預設隱藏 */
+        .mobile-category-menu {
+            display: none;
+        }
+
+        /* 響應式調整 */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: row; /* 改回橫向佈局 */
+            }
+
+            /* 隱藏手機版不需要的元素 */
+            .status-bar {
+                display: none;
+            }
+
+            .sidebar {
+                width: 220px; /* 保持原始寬度 */
+                height: 100vh; /* 全高度 */
+                padding: 60px 15px 20px 15px; /* 頂部留空間給按鈕 */
+                display: flex;
+                flex-direction: column; /* 改回縱向佈局 */
+                overflow-x: hidden;
+                overflow-y: auto;
+                position: fixed; /* 固定位置 */
+                left: 0;
+                top: 0;
+                transform: translateX(-220px); /* 預設隱藏 */
+                transition: transform 0.3s ease;
+                z-index: 999;
+            }
+
+            .sidebar.show {
+                transform: translateX(0); /* 顯示時移入 */
+            }
+
+            .sidebar::-webkit-scrollbar {
+                width: 6px;
+                height: auto;
+            }
+
+            .thumbnail-item {
+                flex-shrink: 0;
+                width: 100%; /* 佔滿寬度 */
+                margin-right: 0;
+                margin-bottom: 15px; /* 恢復底部間距 */
+            }
+
+            .thumbnail-item img {
+                height: 120px; /* 恢復原始高度 */
+                width: 100%;
+            }
+
+            .thumbnail-number {
+                font-size: 14px; /* 恢復原始字體大小 */
+                padding: 5px;
+            }
+
+            .main-display {
+                width: 100%; /* 佔滿整個寬度 */
+                height: 100vh; /* 全高度 */
+                margin-left: 0; /* 移除左邊距 */
+            }
+
+            .image-page {
+                min-height: auto; /* 改為自動高度，不強制佔滿螢幕 */
+                padding: 5px 15px 80px 15px; /* 減少上下間距，底部留空間給懸浮工具列 */
+                align-items: flex-start; /* 手機版也頂端對齊 */
+            }
+
+            .image-page img {
+                max-width: 90%;
+                max-height: 90%;
+                width: auto;
+                height: auto;
+                display: block;
+                margin: auto;
+            }
+
+
+
+            /* 指標工作列響應式 */
+            .indicator-toolbar {
+                padding: 8px 15px;
+                display: none; /* 手機版隱藏原本的toolbar */
+            }
+
+            .indicator-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+                min-width: auto; /* 允許按鈕縮放 */
+            }
+
+            .indicator-btn span:not(.indicator-icon):not(.page-number) {
+                display: inline; /* 顯示指標名稱 */
+            }
+
+            .page-number {
+                font-size: 10px;
+                margin-left: 2px;
+            }
+
+            /* 啟用手機版懸浮toolbar */
+            .mobile-floating-toolbar {
+                display: flex !important;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 60px;
+                z-index: 200;
+                align-items: center;
+                justify-content: center;
+                background: transparent;
+                padding: 0 20px;
+                pointer-events: none; /* 背景不攔截點擊 */
+            }
+
+            .mobile-category-button {
+                background: rgba(52, 73, 94, 0.9);
+                color: white;
+                border: none;
+                border-radius: 25px;
+                padding: 12px 20px;
+                font-size: 14px;
+                font-weight: 500;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                cursor: pointer;
+                transition: all 0.3s ease;
+                pointer-events: auto; /* 按鈕可以點擊 */
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                min-width: 140px;
+                justify-content: center;
+            }
+
+            .mobile-category-button:hover {
+                background: rgba(52, 73, 94, 1);
+                transform: translateY(-2px);
+                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+            }
+
+            .mobile-category-button:active {
+                transform: translateY(0);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            }
+
+            .category-icon {
+                font-size: 16px;
+            }
+
+            .category-name {
+                font-size: 13px;
+            }
+
+            .dropdown-arrow {
+                font-size: 12px;
+                transition: transform 0.3s ease;
+            }
+
+            .mobile-category-button.active .dropdown-arrow {
+                transform: rotate(180deg);
+            }
+
+            /* 啟用向上彈出的分類選單 */
+            .mobile-category-menu {
+                display: block !important;
+                position: fixed;
+                bottom: 70px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(52, 73, 94, 0.95);
+                border-radius: 15px;
+                padding: 15px;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+                backdrop-filter: blur(15px);
+                -webkit-backdrop-filter: blur(15px);
+                z-index: 199;
+                opacity: 0;
+                visibility: hidden;
+                transform: translateX(-50%) translateY(20px);
+                transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                pointer-events: auto;
+                min-width: 280px;
+                max-width: 90vw;
+            }
+
+            .mobile-category-menu.show {
+                opacity: 1;
+                visibility: visible;
+                transform: translateX(-50%) translateY(0);
+            }
+
+            .mobile-category-menu::before {
+                content: '';
+                position: absolute;
+                bottom: -8px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 0;
+                height: 0;
+                border-left: 8px solid transparent;
+                border-right: 8px solid transparent;
+                border-top: 8px solid rgba(52, 73, 94, 0.95);
+            }
+
+            .mobile-menu-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 12px 15px;
+                margin: 4px 0;
+                border-radius: 10px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                color: white;
+                text-decoration: none;
+                background: transparent;
+            }
+
+            .mobile-menu-item:hover {
+                background: rgba(255, 255, 255, 0.1);
+                transform: translateX(3px);
+            }
+
+            .mobile-menu-item.active {
+                background: rgba(52, 152, 219, 0.3);
+                border-left: 3px solid #3498db;
+            }
+
+            .mobile-menu-icon {
+                width: 20px;
+                height: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 16px;
+            }
+
+            .mobile-menu-text {
+                flex: 1;
+                font-size: 14px;
+                font-weight: 400;
+            }
+
+            .mobile-menu-page {
+                font-size: 12px;
+                color: rgba(255, 255, 255, 0.7);
+                background: rgba(255, 255, 255, 0.1);
+                padding: 2px 8px;
+                border-radius: 8px;
+            }
+        }
+
+        /* 更小螢幕調整 */
+        @media (max-width: 480px) {
+            .mobile-toggle {
+                width: 35px;
+                height: 35px;
+                top: 15px;
+                left: 8px;
+                font-size: 14px;
+            }
+
+            .mobile-toggle.active {
+                left: 200px;
+            }
+
+            .sidebar {
+                width: 200px; /* 小螢幕時縮小寬度 */
+                padding: 50px 10px 15px 10px;
+                transform: translateX(-200px);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .thumbnail-item {
+                width: 100%;
+                margin-bottom: 12px;
+            }
+
+            .thumbnail-item img {
+                height: 100px; /* 小螢幕縮小高度 */
+                width: 100%;
+            }
+
+            .thumbnail-number {
+                font-size: 12px;
+                padding: 3px;
+            }
+
+            .main-display {
+                width: 100%;
+                height: 100vh;
+            }
+
+            .image-page {
+                min-height: auto; /* 改為自動高度，不強制佔滿螢幕 */
+                padding: 3px 10px 75px 10px; /* 進一步減少間距，底部留空間給懸浮工具列 */
+                align-items: flex-start; /* 小螢幕也頂端對齊 */
+            }
+
+            .image-page img {
+                max-width: 95%;
+                max-height: 95%;
+                width: auto;
+                height: auto;
+                display: block;
+                margin: auto;
+            }
+
+
+
+            /* 更小螢幕的指標工作列 */
+            .indicator-toolbar {
+                padding: 6px 10px;
+                display: none; /* 小螢幕也隱藏原本的toolbar */
+            }
+
+            .indicator-btn {
+                padding: 4px 8px;
+                font-size: 11px;
+                gap: 4px;
+                min-width: auto;
+            }
+
+            .indicator-btn span:not(.indicator-icon):not(.page-number) {
+                display: inline; /* 小螢幕也顯示完整名稱 */
+            }
+
+            .indicator-icon {
+                width: 14px;
+                height: 14px;
+                font-size: 10px;
+            }
+
+            .page-number {
+                font-size: 9px;
+                padding: 1px 4px;
+            }
+
+            /* 更小螢幕的懸浮toolbar調整 */
+            .mobile-floating-toolbar {
+                padding: 0 15px;
+                height: 55px;
+            }
+
+            .mobile-category-button {
+                padding: 10px 18px;
+                font-size: 13px;
+                min-width: 120px;
+            }
+
+            .mobile-category-menu {
+                bottom: 65px;
+                min-width: 260px;
+                padding: 12px;
+            }
+
+            .mobile-menu-item {
+                padding: 10px 12px;
+            }
+
+            .mobile-menu-text {
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    
+    <!-- 左側縮圖列表 -->
+    <div class="sidebar" id="sidebar">
+        <!-- 縮圖會動態生成 -->
+    </div>
+
+    <!-- 主要顯示區域 -->
+    <div class="main-display">
+
+
+        <!-- 學習指標工作列 -->
+        <div class="indicator-toolbar">
+            <div class="indicator-nav">
+                <button class="indicator-btn" onclick="jumpToIndicator(0)" data-indicator="0" title="身體動作與健康 (P.4)">
+                    <span class="indicator-icon">🏃</span>
+                    <span>身體動作與健康</span>
+                    <span class="page-number">P.4</span>
+                </button>
+                <button class="indicator-btn" onclick="jumpToIndicator(1)" data-indicator="1" title="認知 (P.9)">
+                    <span class="indicator-icon">🧠</span>
+                    <span>認知</span>
+                    <span class="page-number">P.9</span>
+                </button>
+                <button class="indicator-btn" onclick="jumpToIndicator(2)" data-indicator="2" title="語文 (P.15)">
+                    <span class="indicator-icon">📝</span>
+                    <span>語文</span>
+                    <span class="page-number">P.15</span>
+                </button>
+                <button class="indicator-btn" onclick="jumpToIndicator(3)" data-indicator="3" title="社會 (P.22)">
+                    <span class="indicator-icon">👥</span>
+                    <span>社會</span>
+                    <span class="page-number">P.22</span>
+                </button>
+                <button class="indicator-btn" onclick="jumpToIndicator(4)" data-indicator="4" title="情緒 (P.29)">
+                    <span class="indicator-icon">❤️</span>
+                    <span>情緒</span>
+                    <span class="page-number">P.29</span>
+                </button>
+                <button class="indicator-btn" onclick="jumpToIndicator(5)" data-indicator="5" title="美感 (P.34)">
+                    <span class="indicator-icon">🎨</span>
+                    <span>美感</span>
+                    <span class="page-number">P.34</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 圖片容器 -->
+        <div class="image-container" id="imageContainer">
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+            </div>
+            <div class="images-wrapper" id="imagesWrapper">
+                <!-- 圖片會動態生成 -->
+            </div>
+        </div>
+
+        <!-- 底部狀態列 -->
+        <div class="status-bar">
+            <span id="imageInfo">第 1 張，共 0 張</span>
+
+        </div>
+    </div>
+
+    <!-- 手機版懸浮toolbar -->
+    <div class="mobile-floating-toolbar" id="mobileFloatingToolbar" style="display: none;">
+        <button class="mobile-category-button" id="mobileCategoryButton" onclick="toggleMobileCategoryMenu()">
+            <span class="category-icon" id="currentCategoryIcon">🏃</span>
+            <span class="category-name" id="currentCategoryName">身體動作與健康</span>
+            <span class="dropdown-arrow">▲</span>
+        </button>
+    </div>
+
+    <!-- 手機版分類選單 -->
+    <div class="mobile-category-menu" id="mobileCategoryMenu">
+        <div class="mobile-menu-item" onclick="selectMobileCategory(0)">
+            <span class="mobile-menu-icon">🏃</span>
+            <span class="mobile-menu-text">身體動作與健康</span>
+            <span class="mobile-menu-page">P.4</span>
+        </div>
+        <div class="mobile-menu-item" onclick="selectMobileCategory(1)">
+            <span class="mobile-menu-icon">🧠</span>
+            <span class="mobile-menu-text">認知</span>
+            <span class="mobile-menu-page">P.9</span>
+        </div>
+        <div class="mobile-menu-item" onclick="selectMobileCategory(2)">
+            <span class="mobile-menu-icon">📝</span>
+            <span class="mobile-menu-text">語文</span>
+            <span class="mobile-menu-page">P.15</span>
+        </div>
+        <div class="mobile-menu-item" onclick="selectMobileCategory(3)">
+            <span class="mobile-menu-icon">👥</span>
+            <span class="mobile-menu-text">社會</span>
+            <span class="mobile-menu-page">P.22</span>
+        </div>
+        <div class="mobile-menu-item" onclick="selectMobileCategory(4)">
+            <span class="mobile-menu-icon">❤️</span>
+            <span class="mobile-menu-text">情緒</span>
+            <span class="mobile-menu-page">P.29</span>
+        </div>
+        <div class="mobile-menu-item" onclick="selectMobileCategory(5)">
+            <span class="mobile-menu-icon">🎨</span>
+            <span class="mobile-menu-text">美感</span>
+            <span class="mobile-menu-page">P.34</span>
+        </div>
+    </div>
+
+    <script>
+        // 配置
+        let images = [];
+        let currentIndex = 0;
+
+        // 學習指標配置
+        const indicators = [
+            { name: '身體動作與健康', page: 4, icon: '🏃' },
+            { name: '認知', page: 9, icon: '🧠' },
+            { name: '語文', page: 15, icon: '📝' },
+            { name: '社會', page: 22, icon: '👥' },
+            { name: '情緒', page: 29, icon: '❤️' },
+            { name: '美感', page: 34, icon: '🎨' }
+        ];
+
+        // 動態檢測圖片文件
+        async function detectImages() {
+            const detectedImages = [];
+            const maxImages = 100; // 設定最大檢測數量，避免無限循環
+            
+            // 先檢測png格式的圖片（從0開始）
+            for (let i = 0; i < maxImages; i++) {
+                try {
+                    const imagePath = `img/${i}.png`;
+                    const exists = await checkImageExists(imagePath);
+                    if (exists) {
+                        detectedImages.push({
+                            id: i,
+                            filename: `${i}.png`,
+                            path: imagePath
+                        });
+                    } else if (detectedImages.length > 0 && i - detectedImages[detectedImages.length - 1].id > 5) {
+                        // 如果連續5個編號都不存在，就停止檢測
+                        break;
+                    }
+                } catch (error) {
+                    console.log(`檢測圖片 ${i}.png 時發生錯誤:`, error);
+                }
+            }
+            
+            return detectedImages;
+        }
+
+        // 檢查圖片是否存在
+        function checkImageExists(src) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(true);
+                img.onerror = () => resolve(false);
+                img.src = src;
+                // 設定超時時間
+                setTimeout(() => resolve(false), 3000);
+            });
+        }
+
+        // 初始化
+        async function init() {
+            try {
+                // 顯示載入中狀態
+                document.getElementById('loading').classList.add('active');
+                
+                // 動態檢測圖片
+                images = await detectImages();
+                
+                if (images.length === 0) {
+                    // 如果沒有檢測到圖片，使用預設配置
+                    console.log('未檢測到圖片，使用預設配置');
+                    const imageCount = 39; // 預設圖片總數
+                    for (let i = 0; i < imageCount; i++) {
+                images.push({
+                    id: i,
+                            filename: `${i}.png`,
+                            path: `img/${i}.png`
+                });
+            }
+                }
+
+                console.log(`檢測到 ${images.length} 張圖片`);
+                
+                // 隱藏載入中狀態
+                document.getElementById('loading').classList.remove('active');
+
+            renderSidebar();
+                renderImages();
+                if (images.length > 0) {
+                    currentIndex = 0;
+                    updateUI();
+                    // 延遲一點時間確保DOM渲染完成後再設置滾動監聽
+                    setTimeout(setupScrollControls, 100);
+                } else {
+                    setupScrollControls();
+                }
+
+                
+            } catch (error) {
+                console.error('初始化失敗:', error);
+                document.getElementById('loading').classList.remove('active');
+                document.getElementById('errorPlaceholder').style.display = 'flex';
+                document.getElementById('errorPlaceholder').textContent = '初始化失敗，請重新整理頁面';
+            }
+        }
+
+        // 渲染側邊欄縮圖
+        function renderSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.innerHTML = '';
+
+            images.forEach((image, index) => {
+                const item = document.createElement('div');
+                item.className = 'thumbnail-item';
+                item.onclick = () => {
+                    // 立即更新縮圖選中狀態
+                    updateThumbnailsActive(index);
+                    scrollToImage(index);
+                };
+
+                const img = document.createElement('img');
+                img.src = image.path;
+                img.alt = `圖片 ${image.id + 1}`;
+                
+                // 錯誤處理：使用佔位圖
+                img.onerror = () => {
+                    img.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120"><rect fill="%23e0e0e0" width="200" height="120"/><text x="50%" y="50%" font-family="Arial" font-size="14" fill="%23999" text-anchor="middle" dominant-baseline="middle">No Image</text></svg>`;
+                };
+
+                const number = document.createElement('div');
+                number.className = 'thumbnail-number';
+                number.textContent = image.id + 1;
+
+                item.appendChild(img);
+                item.appendChild(number);
+                sidebar.appendChild(item);
+            });
+        }
+
+        // 渲染所有圖片到垂直容器
+        function renderImages() {
+            const wrapper = document.getElementById('imagesWrapper');
+            wrapper.innerHTML = '';
+
+            images.forEach((image, index) => {
+                const page = document.createElement('div');
+                page.className = 'image-page';
+                page.id = `image-page-${index}`;
+
+                const img = document.createElement('img');
+                img.src = image.path;
+                img.alt = `圖片 ${image.id + 1}`;
+                img.loading = 'lazy'; // 懶加載優化
+
+                // 錯誤處理
+                img.onerror = () => {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'error-placeholder';
+                    errorDiv.textContent = `圖片 ${image.id + 1} 載入失敗`;
+                    page.appendChild(errorDiv);
+                };
+
+                page.appendChild(img);
+                wrapper.appendChild(page);
+            });
+        }
+
+        // 滾動到指定圖片
+        function scrollToImage(index) {
+            if (index < 0 || index >= images.length) return;
+
+            // 立即更新當前索引和UI狀態
+            currentIndex = index;
+            updateUI();
+
+            const targetPage = document.getElementById(`image-page-${index}`);
+            if (targetPage) {
+                targetPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        // 基於滾動位置更新當前圖片索引
+        function updateCurrentIndex() {
+            const container = document.getElementById('imageContainer');
+            const pages = document.querySelectorAll('.image-page');
+            
+            let currentPageIndex = 0;
+            const containerRect = container.getBoundingClientRect();
+            const centerY = containerRect.top + containerRect.height / 2;
+
+            pages.forEach((page, index) => {
+                const pageRect = page.getBoundingClientRect();
+                if (pageRect.top <= centerY && pageRect.bottom >= centerY) {
+                    currentPageIndex = index;
+                }
+            });
+
+            if (currentPageIndex !== currentIndex) {
+                currentIndex = currentPageIndex;
+                // 只更新狀態列，不強制更新按鈕狀態（避免覆蓋點擊反饋）
+                const image = images[currentIndex];
+                document.getElementById('imageInfo').textContent = `第 ${image.id + 1} 張，共 ${images.length} 張`;
+                
+                // 輕柔地更新UI狀態（使用正常邏輯，不強制覆蓋）
+                updateThumbnailsActive(currentIndex);
+                updateIndicatorButtons();
+            }
+        }
+
+            // 更新縮圖選中狀態
+        function updateThumbnailsActive(activeIndex) {
+            const thumbnails = document.querySelectorAll('.thumbnail-item');
+            thumbnails.forEach((thumb, i) => {
+                if (i === activeIndex) {
+                    thumb.classList.add('active');
+                    // 自動滾動到可見位置
+                    thumb.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    thumb.classList.remove('active');
+                }
+            });
+        }
+
+        // 更新UI狀態
+        function updateUI() {
+            const image = images[currentIndex];
+            
+            // 更新狀態列
+            document.getElementById('imageInfo').textContent = `第 ${image.id + 1} 張，共 ${images.length} 張`;
+
+            // 更新縮圖選中狀態
+            updateThumbnailsActive(currentIndex);
+
+            // 更新指標按鈕狀態
+            updateIndicatorButtons();
+        }
+
+        // 導航功能（現在基於滾動）
+        function previousImage() {
+            if (currentIndex > 0) {
+                scrollToImage(currentIndex - 1);
+            }
+        }
+
+        function nextImage() {
+            if (currentIndex < images.length - 1) {
+                scrollToImage(currentIndex + 1);
+            }
+        }
+
+        // 跳轉到指標
+        function jumpToIndicator(indicatorIndex) {
+            if (indicatorIndex >= 0 && indicatorIndex < indicators.length) {
+                const targetPage = indicators[indicatorIndex].page;
+                // 頁碼轉換為圖片索引（因為有第0頁，所以頁碼直接對應圖片編號）
+                const targetImageIndex = targetPage; // P.4 對應圖片 4.png
+                
+                if (targetImageIndex >= 0 && targetImageIndex < images.length) {
+                    // 立即更新indicator按鈕狀態
+                    updateIndicatorButtons(indicatorIndex);
+                    scrollToImage(targetImageIndex);
+                } else {
+                    console.warn(`指標 ${indicators[indicatorIndex].name} 對應的圖片不存在`);
+                }
+            }
+        }
+
+        // 更新指標按鈕狀態
+        function updateIndicatorButtons(forceActiveIndex = null) {
+            const indicatorButtons = document.querySelectorAll('.indicator-btn');
+            
+            if (forceActiveIndex !== null) {
+                // 如果指定了強制激活的索引，直接設置該按鈕為active
+                indicatorButtons.forEach((btn, index) => {
+                    if (index === forceActiveIndex) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+                // 同時更新手機版分類顯示
+                updateMobileCategoryDisplay(forceActiveIndex);
+                return;
+            }
+            
+            // 正常的範圍檢查邏輯
+            const currentPage = currentIndex + 1; // 當前圖片對應的頁碼
+            
+            indicatorButtons.forEach((btn, index) => {
+                const indicator = indicators[index];
+                const isInIndicatorRange = currentPage >= indicator.page && 
+                    (index === indicators.length - 1 || currentPage < indicators[index + 1].page);
+                
+                if (isInIndicatorRange) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            // 同時更新手機版分類顯示
+            updateMobileCategoryDisplay();
+        }
+
+
+
+        // 鍵盤控制（改為垂直導航）
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case 'ArrowUp':
+                case 'ArrowLeft':
+                    previousImage();
+                    break;
+                case 'ArrowDown':
+                case 'ArrowRight':
+                    nextImage();
+                    break;
+                case 'PageUp':
+                    previousImage();
+                    break;
+                case 'PageDown':
+                    nextImage();
+                    break;
+                case 'Home':
+                    scrollToImage(0);
+                    break;
+                case 'End':
+                    scrollToImage(images.length - 1);
+                    break;
+                case '+':
+                case '=':
+                    // 放大 (Ctrl++ 或單獨按+)
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        const newScale = Math.min(3, currentScale * 1.2);
+                        lastScale = newScale;
+                        applyZoom(newScale);
+                    }
+                    break;
+                case '-':
+                    // 縮小 (Ctrl+- 或單獨按-)
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        const newScale = Math.max(0.5, currentScale * 0.8);
+                        lastScale = newScale;
+                        applyZoom(newScale);
+                    }
+                    break;
+                case '0':
+                    // 重置縮放 (Ctrl+0)
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        resetZoom();
+                    }
+                    break;
+            }
+        });
+
+        // 觸控滑動支援（優化版本）
+        let touchStartY = 0;
+        let touchEndY = 0;
+        let isScrolling = false;
+        let startTime = 0;
+
+        // 雙指縮放相關變數
+        let currentScale = 1;
+        let lastScale = 1;
+        let isZooming = false;
+        let touchStartDistance = 0;
+
+        function handleTouchStart(e) {
+            if (e.touches.length === 2) {
+                // 雙指觸控開始
+                isZooming = true;
+                touchStartDistance = getTouchDistance(e.touches);
+                e.preventDefault(); // 防止預設的縮放行為
+            } else if (e.touches.length === 1) {
+                // 單指觸控
+                touchStartY = e.touches[0].clientY;
+                startTime = Date.now();
+                isScrolling = false;
+                isZooming = false;
+            }
+        }
+
+        function handleTouchMove(e) {
+            if (e.touches.length === 2 && isZooming) {
+                // 雙指縮放處理
+                e.preventDefault();
+                const currentDistance = getTouchDistance(e.touches);
+                const scaleChange = currentDistance / touchStartDistance;
+                
+                // 限制縮放範圍 (0.5x 到 3x)
+                const newScale = Math.max(0.5, Math.min(3, lastScale * scaleChange));
+                
+                // 應用縮放
+                applyZoom(newScale);
+            } else if (e.touches.length === 1 && !isZooming) {
+                // 單指滾動檢測
+                const currentY = e.touches[0].clientY;
+                const deltaY = Math.abs(currentY - touchStartY);
+                
+                if (deltaY > 10) {
+                    isScrolling = true;
+                }
+            }
+        }
+
+        function handleTouchEnd(e) {
+            if (isZooming) {
+                // 縮放結束，保存當前縮放比例
+                lastScale = currentScale;
+                isZooming = false;
+                return;
+            }
+            
+            if (isScrolling) return; // 如果正在滾動，不執行快速滑動
+            
+            touchEndY = e.changedTouches[0].clientY;
+            const duration = Date.now() - startTime;
+            
+            // 只有快速滑動才觸發頁面切換
+            if (duration < 300) {
+                handleSwipe();
+            }
+        }
+
+        function handleSwipe() {
+            const swipeThreshold = 30; // 降低閾值，讓快速滑動更靈敏
+            const swipeDistance = touchEndY - touchStartY;
+
+            if (Math.abs(swipeDistance) > swipeThreshold) {
+                if (swipeDistance > 0) {
+                    // 向下快速滑動 - 上一張
+                    previousImage();
+                } else {
+                    // 向上快速滑動 - 下一張
+                    nextImage();
+                }
+            }
+        }
+
+        // 計算兩個觸控點之間的距離
+        function getTouchDistance(touches) {
+            const dx = touches[0].clientX - touches[1].clientX;
+            const dy = touches[0].clientY - touches[1].clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        // 應用縮放到images-wrapper
+        function applyZoom(scale) {
+            currentScale = scale;
+            const imagesWrapper = document.getElementById('imagesWrapper');
+            imagesWrapper.style.transform = `scale(${scale})`;
+        }
+
+        // 重置縮放
+        function resetZoom() {
+            currentScale = 1;
+            lastScale = 1;
+            applyZoom(1);
+        }
+
+        // 添加滾動事件監聽器
+        function setupScrollControls() {
+            const imageContainer = document.getElementById('imageContainer');
+            
+            // 滾動事件監聽
+            let scrollTimeout;
+            let isUserScrolling = false;
+            
+            imageContainer.addEventListener('scroll', () => {
+                isUserScrolling = true;
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(() => {
+                    updateCurrentIndex();
+                    isUserScrolling = false;
+                }, 150); // 稍微增加延遲，減少抖動
+            }, { passive: true });
+
+            // 觸控事件監聽（支援縮放的滑動體驗）
+            imageContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
+            imageContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
+            imageContainer.addEventListener('touchend', handleTouchEnd, { passive: false });
+        }
+
+
+
+        // 手機版分類選單功能
+        function toggleMobileCategoryMenu() {
+            const menu = document.getElementById('mobileCategoryMenu');
+            const button = document.getElementById('mobileCategoryButton');
+            
+            menu.classList.toggle('show');
+            button.classList.toggle('active');
+        }
+
+        function selectMobileCategory(indicatorIndex) {
+            // 關閉選單
+            const menu = document.getElementById('mobileCategoryMenu');
+            const button = document.getElementById('mobileCategoryButton');
+            menu.classList.remove('show');
+            button.classList.remove('active');
+            
+            // 更新當前分類顯示
+            updateMobileCategoryDisplay(indicatorIndex);
+            
+            // 跳轉到對應指標
+            jumpToIndicator(indicatorIndex);
+        }
+
+        function updateMobileCategoryDisplay(indicatorIndex = null) {
+            const iconElement = document.getElementById('currentCategoryIcon');
+            const nameElement = document.getElementById('currentCategoryName');
+            const menuItems = document.querySelectorAll('.mobile-menu-item');
+            
+            let activeIndicatorIndex = indicatorIndex;
+            
+            // 如果沒有指定索引，根據當前頁面自動判斷
+            if (activeIndicatorIndex === null) {
+                const currentPage = currentIndex + 1;
+                activeIndicatorIndex = 0; // 預設為第一個指標
+                
+                for (let i = 0; i < indicators.length; i++) {
+                    const indicator = indicators[i];
+                    const isInRange = currentPage >= indicator.page && 
+                        (i === indicators.length - 1 || currentPage < indicators[i + 1].page);
+                    
+                    if (isInRange) {
+                        activeIndicatorIndex = i;
+                        break;
+                    }
+                }
+            }
+            
+            // 更新顯示內容
+            if (activeIndicatorIndex >= 0 && activeIndicatorIndex < indicators.length) {
+                const indicator = indicators[activeIndicatorIndex];
+                iconElement.textContent = indicator.icon;
+                nameElement.textContent = indicator.name;
+                
+                // 更新選單項目的active狀態
+                menuItems.forEach((item, index) => {
+                    if (index === activeIndicatorIndex) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+            }
+        }
+
+        // 手機版控制功能
+        function setupMobileControls() {
+            const mainDisplay = document.getElementById('imageContainer');
+            const mobileToolbar = document.getElementById('mobileFloatingToolbar');
+            const categoryMenu = document.getElementById('mobileCategoryMenu');
+            const categoryButton = document.getElementById('mobileCategoryButton');
+            
+            // 檢查是否為手機版
+            function isMobile() {
+                return window.innerWidth <= 768;
+            }
+            
+            // 更新手機版顯示狀態
+            function updateMobileDisplay() {
+                if (isMobile()) {
+                    mobileToolbar.style.display = 'flex';
+                } else {
+                    mobileToolbar.style.display = 'none';
+                    // 桌面版時重置分類選單狀態
+                    categoryMenu.classList.remove('show');
+                    categoryButton.classList.remove('active');
+                }
+            }
+            
+            // 點擊主區域時隱藏分類選單
+            mainDisplay.addEventListener('click', () => {
+                if (isMobile() && categoryMenu.classList.contains('show')) {
+                    toggleMobileCategoryMenu();
+                }
+            });
+            
+            // 點擊其他區域關閉分類選單
+            document.addEventListener('click', (e) => {
+                if (isMobile() && !categoryButton.contains(e.target) && !categoryMenu.contains(e.target)) {
+                    if (categoryMenu.classList.contains('show')) {
+                        categoryMenu.classList.remove('show');
+                        categoryButton.classList.remove('active');
+                    }
+                }
+            });
+            
+            // 監聽窗口大小變化
+            window.addEventListener('resize', updateMobileDisplay);
+            
+            // 初始化顯示狀態
+            updateMobileDisplay();
+        }
+
+        // 初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            init();
+            setupMobileControls();
+            // 初始化手機版分類顯示
+            setTimeout(() => {
+                updateMobileCategoryDisplay();
+            }, 200);
+        });
+    </script>
+</body>
+</html>
