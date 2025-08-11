@@ -4,10 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>學習指標手冊</title>
-    
-    <!-- Swiper CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
-    
     <style>
         * {
             margin: 0;
@@ -95,6 +91,8 @@
             overflow: hidden;
         }
 
+
+
         /* 學習指標工作列 */
         .indicator-toolbar {
             background: #34495e;
@@ -172,49 +170,59 @@
             margin-left: 4px;
         }
 
-        /* Swiper 容器樣式 */
-        .swiper-container {
-            flex: 1;
-            width: 100%;
-            height: 100%;
-            background: #fafafa;
-        }
 
-        .swiper-wrapper {
-            align-items: center;
-        }
 
-        .swiper-slide {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            text-align: center;
-        }
-
+        /* 圖片容器 - 垂直滾動模式 */
         .image-container {
+            flex: 1;
+            background: #fafafa;
             position: relative;
-            max-width: 100%;
-            max-height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch; /* iOS Safari 滑動優化 */
+            scroll-snap-type: y proximity; /* 輕微的滾動吸附效果 */
         }
 
-        .zoomable-image {
+        .images-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            min-height: 100%;
+        }
+
+        /* 手機版調整圖片間距 */
+        @media (max-width: 768px) {
+            .images-wrapper {
+                gap: 0; /* 手機版圖片間距更緊密 */
+            }
+        }
+
+        .image-page {
+            width: 100%;
+            min-height: calc(100vh - 120px); /* 扣除indicator-toolbar和status-bar的高度 */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* 改為頂端對齊 */
+            padding: 30px 20px 20px 20px; /* 頂部稍微多一點padding */
+            box-sizing: border-box;
+            position: relative;
+            scroll-snap-align: start; /* 滾動吸附到頁面開始位置 */
+        }
+
+        .image-page img {
             max-width: 85%;
-            max-height: calc(100vh - 200px);
+            max-height: calc(100vh - 200px); /* 動態計算最大高度，扣除工具列、狀態列和padding */
             width: auto;
             height: auto;
             object-fit: contain;
+            object-position: top; /* 圖片內容對齊頂部 */
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            cursor: grab;
-            transition: transform 0.2s ease;
+            display: block;
+            margin: 0 auto; /* 只在水平方向居中 */
         }
 
-        .zoomable-image.zoomed {
-            cursor: move;
-        }
+
 
         /* 底部狀態列 */
         .status-bar {
@@ -231,6 +239,8 @@
             z-index: 100;
         }
 
+
+
         /* Loading 動畫 */
         .loading {
             position: absolute;
@@ -238,7 +248,6 @@
             left: 50%;
             transform: translate(-50%, -50%);
             display: none;
-            z-index: 1000;
         }
 
         .loading.active {
@@ -274,26 +283,6 @@
             border-radius: 4px;
         }
 
-        /* 縮放提示 */
-        .zoom-hint {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
-            z-index: 200;
-        }
-
-        .zoom-hint.show {
-            opacity: 1;
-        }
-
         /* 手機版收闔按鈕 - 預設隱藏 */
         .mobile-toggle {
             display: none;
@@ -318,16 +307,6 @@
             /* 隱藏手機版不需要的元素 */
             .status-bar {
                 display: none;
-            }
-
-            /* 手機版 Swiper 樣式調整 */
-            .swiper-slide {
-                padding: 10px; /* 減少內邊距 */
-            }
-
-            .zoomable-image {
-                max-width: 95%; /* 增加圖片寬度 */
-                max-height: calc(100vh - 120px); /* 減少頂部和底部的空間 */
             }
 
             .sidebar {
@@ -380,7 +359,7 @@
 
             .image-page {
                 min-height: auto; /* 改為自動高度，不強制佔滿螢幕 */
-                padding: 5px 15px 80px 15px; /* 減少上下間距，底部留空間給懸浮工具列 */
+                padding: 8px 15px 80px 15px; /* 底部留空間給懸浮工具列 */
                 align-items: flex-start; /* 手機版也頂端對齊 */
             }
 
@@ -420,7 +399,7 @@
             .mobile-floating-toolbar {
                 display: flex !important;
                 position: fixed;
-                bottom: 15px; /* 往上移動 15px */
+                bottom: 0;
                 left: 0;
                 right: 0;
                 height: 60px;
@@ -485,7 +464,7 @@
             .mobile-category-menu {
                 display: block !important;
                 position: fixed;
-                bottom: 85px; /* 調整為toolbar上方 */
+                bottom: 70px;
                 left: 50%;
                 transform: translateX(-50%);
                 background: rgba(52, 73, 94, 0.95);
@@ -617,7 +596,7 @@
 
             .image-page {
                 min-height: auto; /* 改為自動高度，不強制佔滿螢幕 */
-                padding: 3px 10px 75px 10px; /* 進一步減少間距，底部留空間給懸浮工具列 */
+                padding: 5px 10px 75px 10px; /* 底部留空間給懸浮工具列 */
                 align-items: flex-start; /* 小螢幕也頂端對齊 */
             }
 
@@ -664,7 +643,6 @@
             .mobile-floating-toolbar {
                 padding: 0 15px;
                 height: 55px;
-                bottom: 12px; /* 小螢幕稍微再往上一點 */
             }
 
             .mobile-category-button {
@@ -674,7 +652,7 @@
             }
 
             .mobile-category-menu {
-                bottom: 77px; /* 對應小螢幕toolbar位置調整 */
+                bottom: 65px;
                 min-width: 260px;
                 padding: 12px;
             }
@@ -737,22 +715,21 @@
             </div>
         </div>
 
-        <!-- Swiper 圖片容器 -->
-        <div class="swiper-container" id="swiperContainer">
+        <!-- 圖片容器 -->
+        <div class="image-container" id="imageContainer">
             <div class="loading" id="loading">
                 <div class="spinner"></div>
             </div>
-            <div class="swiper-wrapper" id="swiperWrapper">
+            <div class="images-wrapper" id="imagesWrapper">
                 <!-- 圖片會動態生成 -->
             </div>
-            <div class="zoom-hint" id="zoomHint">雙指縮放 | Ctrl + 滾輪</div>
         </div>
 
         <!-- 底部狀態列 -->
         <div class="status-bar">
             <span id="imageInfo">第 1 張，共 0 張</span>
 
-        </div>
+            </div>
     </div>
 
     <!-- 手機版懸浮toolbar -->
@@ -798,15 +775,10 @@
         </div>
     </div>
 
-    <!-- Swiper JS -->
-    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-    
     <script>
         // 配置
         let images = [];
         let currentIndex = 0;
-        let swiper = null;
-        let zoomInstances = [];
 
         // 學習指標配置
         const indicators = [
@@ -885,13 +857,16 @@
                 // 隱藏載入中狀態
                 document.getElementById('loading').classList.remove('active');
 
-                            renderSidebar();
+            renderSidebar();
                 renderImages();
-                
-                // 初始化 Swiper（延遲以確保DOM渲染完成）
-                setTimeout(() => {
-                    initSwiper();
-                }, 100);
+                if (images.length > 0) {
+                    currentIndex = 0;
+                    updateUI();
+                    // 延遲一點時間確保DOM渲染完成後再設置滾動監聽
+                    setTimeout(setupScrollControls, 100);
+                } else {
+                    setupScrollControls();
+                }
 
                 
             } catch (error) {
@@ -935,273 +910,74 @@
             });
         }
 
-        // 渲染所有圖片到 Swiper
+        // 渲染所有圖片到垂直容器
         function renderImages() {
-            const wrapper = document.getElementById('swiperWrapper');
+            const wrapper = document.getElementById('imagesWrapper');
             wrapper.innerHTML = '';
-            zoomInstances = []; // 重置縮放實例
 
             images.forEach((image, index) => {
-                const slide = document.createElement('div');
-                slide.className = 'swiper-slide';
-                slide.setAttribute('data-index', index);
-
-                const container = document.createElement('div');
-                container.className = 'image-container';
+                const page = document.createElement('div');
+                page.className = 'image-page';
+                page.id = `image-page-${index}`;
 
                 const img = document.createElement('img');
                 img.src = image.path;
                 img.alt = `圖片 ${image.id + 1}`;
-                img.className = 'zoomable-image';
-                img.loading = 'lazy';
+                img.loading = 'lazy'; // 懶加載優化
 
                 // 錯誤處理
                 img.onerror = () => {
                     const errorDiv = document.createElement('div');
                     errorDiv.className = 'error-placeholder';
                     errorDiv.textContent = `圖片 ${image.id + 1} 載入失敗`;
-                    container.appendChild(errorDiv);
+                    page.appendChild(errorDiv);
                 };
 
-                // 圖片載入成功後設置縮放功能
-                img.onload = () => {
-                    setupImageZoom(img, index);
-                };
-
-                container.appendChild(img);
-                slide.appendChild(container);
-                wrapper.appendChild(slide);
+                page.appendChild(img);
+                wrapper.appendChild(page);
             });
         }
 
-        // 設置圖片縮放功能
-        function setupImageZoom(img, index) {
-            let scale = 1;
-            let isDragging = false;
-            let startX = 0;
-            let startY = 0;
-            let translateX = 0;
-            let translateY = 0;
-
-            // 更新變換
-            function updateTransform() {
-                img.style.transform = `scale(${scale}) translate(${translateX}px, ${translateY}px)`;
-                img.classList.toggle('zoomed', scale > 1);
-            }
-
-            // 重置縮放和位置
-            function resetZoom() {
-                scale = 1;
-                translateX = 0;
-                translateY = 0;
-                updateTransform();
-                hideZoomHint();
-            }
-
-            // 雙擊縮放
-            img.addEventListener('dblclick', (e) => {
-                e.preventDefault();
-                if (scale > 1) {
-                    resetZoom();
-                } else {
-                    scale = 2;
-                    // 計算點擊位置的縮放中心
-                    const rect = img.getBoundingClientRect();
-                    const x = e.clientX - rect.left - rect.width / 2;
-                    const y = e.clientY - rect.top - rect.height / 2;
-                    translateX = -x * (scale - 1) / scale;
-                    translateY = -y * (scale - 1) / scale;
-                    updateTransform();
-                    showZoomHint();
-                }
-            });
-
-            // 滾輪縮放
-            img.addEventListener('wheel', (e) => {
-                if (e.ctrlKey || e.metaKey) {
-                    e.preventDefault();
-                    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-                    const newScale = Math.max(1, Math.min(4, scale * delta));
-                    
-                    if (newScale !== scale) {
-                        // 計算縮放中心
-                        const rect = img.getBoundingClientRect();
-                        const x = e.clientX - rect.left - rect.width / 2;
-                        const y = e.clientY - rect.top - rect.height / 2;
-                        
-                        // 調整平移以保持縮放中心
-                        const scaleRatio = newScale / scale;
-                        translateX = translateX * scaleRatio - x * (scaleRatio - 1);
-                        translateY = translateY * scaleRatio - y * (scaleRatio - 1);
-                        
-                        scale = newScale;
-                        updateTransform();
-                        
-                        if (scale > 1) {
-                            showZoomHint();
-                        } else {
-                            hideZoomHint();
-                        }
-                    }
-                }
-            });
-
-            // 觸控縮放（雙指縮放）
-            let touchStartDistance = 0;
-            let touchStartScale = 1;
-
-            img.addEventListener('touchstart', (e) => {
-                if (e.touches.length === 2) {
-                    e.preventDefault();
-                    touchStartDistance = getTouchDistance(e.touches);
-                    touchStartScale = scale;
-                } else if (e.touches.length === 1 && scale > 1) {
-                    // 單指拖拽（僅在縮放時）
-                    isDragging = true;
-                    startX = e.touches[0].clientX - translateX;
-                    startY = e.touches[0].clientY - translateY;
-                    img.style.cursor = 'grabbing';
-                }
-            }, { passive: false });
-
-            img.addEventListener('touchmove', (e) => {
-                if (e.touches.length === 2 && touchStartDistance > 0) {
-                    e.preventDefault();
-                    const currentDistance = getTouchDistance(e.touches);
-                    const scaleChange = currentDistance / touchStartDistance;
-                    const newScale = Math.max(1, Math.min(4, touchStartScale * scaleChange));
-                    
-                    if (newScale !== scale) {
-                        scale = newScale;
-                        updateTransform();
-                        
-                        if (scale > 1) {
-                            showZoomHint();
-                        } else {
-                            hideZoomHint();
-                        }
-                    }
-                } else if (e.touches.length === 1 && isDragging && scale > 1) {
-                    e.preventDefault();
-                    translateX = e.touches[0].clientX - startX;
-                    translateY = e.touches[0].clientY - startY;
-                    updateTransform();
-                }
-            }, { passive: false });
-
-            img.addEventListener('touchend', (e) => {
-                if (isDragging) {
-                    isDragging = false;
-                    img.style.cursor = scale > 1 ? 'move' : 'grab';
-                }
-                if (e.touches.length === 0) {
-                    touchStartDistance = 0;
-                }
-            });
-
-            // 鼠標拖拽（桌面版）
-            img.addEventListener('mousedown', (e) => {
-                if (scale > 1 && e.button === 0) {
-                    e.preventDefault();
-                    isDragging = true;
-                    startX = e.clientX - translateX;
-                    startY = e.clientY - translateY;
-                    img.style.cursor = 'grabbing';
-                }
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (isDragging && scale > 1) {
-                    translateX = e.clientX - startX;
-                    translateY = e.clientY - startY;
-                    updateTransform();
-                }
-            });
-
-            document.addEventListener('mouseup', () => {
-                if (isDragging) {
-                    isDragging = false;
-                    img.style.cursor = scale > 1 ? 'move' : 'grab';
-                }
-            });
-
-            // 儲存縮放實例
-            zoomInstances[index] = {
-                img: img,
-                reset: resetZoom,
-                getScale: () => scale
-            };
-        }
-
-        // 跳轉到指定圖片
+        // 滾動到指定圖片
         function scrollToImage(index) {
-            if (index < 0 || index >= images.length || !swiper) return;
+            if (index < 0 || index >= images.length) return;
 
-            // 重置當前圖片的縮放
-            if (zoomInstances[currentIndex]) {
-                zoomInstances[currentIndex].reset();
+            // 立即更新當前索引和UI狀態
+            currentIndex = index;
+            updateUI();
+
+            const targetPage = document.getElementById(`image-page-${index}`);
+            if (targetPage) {
+                targetPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
-
-            // 使用 Swiper 跳轉
-            swiper.slideTo(index);
         }
 
-        // 顯示/隱藏縮放提示
-        function showZoomHint() {
-            const hint = document.getElementById('zoomHint');
-            hint.classList.add('show');
-            setTimeout(() => {
-                hint.classList.remove('show');
-            }, 2000);
-        }
-
-        function hideZoomHint() {
-            const hint = document.getElementById('zoomHint');
-            hint.classList.remove('show');
-        }
-
-        // 計算兩個觸控點之間的距離
-        function getTouchDistance(touches) {
-            const dx = touches[0].clientX - touches[1].clientX;
-            const dy = touches[0].clientY - touches[1].clientY;
-            return Math.sqrt(dx * dx + dy * dy);
-        }
-
-        // 初始化 Swiper
-        function initSwiper() {
-            // 檢測是否為手機版
-            const isMobile = window.innerWidth <= 768;
+        // 基於滾動位置更新當前圖片索引
+        function updateCurrentIndex() {
+            const container = document.getElementById('imageContainer');
+            const pages = document.querySelectorAll('.image-page');
             
-            swiper = new Swiper('.swiper-container', {
-                direction: 'vertical',
-                slidesPerView: 1,
-                spaceBetween: isMobile ? 0 : 0, // 手機版減少間距
-                centeredSlides: true, // 圖片居中
-                mousewheel: {
-                    enabled: true,
-                    forceToAxis: true,
-                },
-                keyboard: {
-                    enabled: true,
-                    onlyInViewport: true,
-                },
-                speed: isMobile ? 250 : 300, // 手機版稍快的切換速度
-                on: {
-                    slideChange: function () {
-                        // 重置前一張圖片的縮放
-                        if (zoomInstances[currentIndex]) {
-                            zoomInstances[currentIndex].reset();
-                        }
-                        
-                        currentIndex = this.activeIndex;
-                        updateUI();
-                    },
-                    init: function () {
-                        currentIndex = this.activeIndex;
-                        updateUI();
-                    }
+            let currentPageIndex = 0;
+            const containerRect = container.getBoundingClientRect();
+            const centerY = containerRect.top + containerRect.height / 2;
+
+            pages.forEach((page, index) => {
+                const pageRect = page.getBoundingClientRect();
+                if (pageRect.top <= centerY && pageRect.bottom >= centerY) {
+                    currentPageIndex = index;
                 }
             });
+
+            if (currentPageIndex !== currentIndex) {
+                currentIndex = currentPageIndex;
+                // 只更新狀態列，不強制更新按鈕狀態（避免覆蓋點擊反饋）
+                const image = images[currentIndex];
+                document.getElementById('imageInfo').textContent = `第 ${image.id + 1} 張，共 ${images.length} 張`;
+                
+                // 輕柔地更新UI狀態（使用正常邏輯，不強制覆蓋）
+                updateThumbnailsActive(currentIndex);
+                updateIndicatorButtons();
+            }
         }
 
             // 更新縮圖選中狀態
@@ -1232,16 +1008,16 @@
             updateIndicatorButtons();
         }
 
-        // 導航功能（基於 Swiper）
+        // 導航功能（現在基於滾動）
         function previousImage() {
-            if (swiper && currentIndex > 0) {
-                swiper.slidePrev();
+            if (currentIndex > 0) {
+                scrollToImage(currentIndex - 1);
             }
         }
 
         function nextImage() {
-            if (swiper && currentIndex < images.length - 1) {
-                swiper.slideNext();
+            if (currentIndex < images.length - 1) {
+                scrollToImage(currentIndex + 1);
             }
         }
 
@@ -1301,26 +1077,103 @@
 
 
 
-        // 額外的鍵盤控制
+        // 鍵盤控制（改為垂直導航）
         document.addEventListener('keydown', (e) => {
             switch(e.key) {
+                case 'ArrowUp':
+                case 'ArrowLeft':
+                    previousImage();
+                    break;
+                case 'ArrowDown':
+                case 'ArrowRight':
+                    nextImage();
+                    break;
+                case 'PageUp':
+                    previousImage();
+                    break;
+                case 'PageDown':
+                    nextImage();
+                    break;
                 case 'Home':
                     scrollToImage(0);
                     break;
                 case 'End':
                     scrollToImage(images.length - 1);
                     break;
-                case '0':
-                    // 重置當前圖片縮放 (Ctrl+0)
-                    if ((e.ctrlKey || e.metaKey) && zoomInstances[currentIndex]) {
-                        e.preventDefault();
-                        zoomInstances[currentIndex].reset();
-                    }
-                    break;
             }
         });
 
+        // 觸控滑動支援（優化版本）
+        let touchStartY = 0;
+        let touchEndY = 0;
+        let isScrolling = false;
+        let startTime = 0;
 
+        function handleTouchStart(e) {
+            touchStartY = e.touches[0].clientY;
+            startTime = Date.now();
+            isScrolling = false;
+        }
+
+        function handleTouchMove(e) {
+            // 檢測是否在滾動
+            const currentY = e.touches[0].clientY;
+            const deltaY = Math.abs(currentY - touchStartY);
+            
+            if (deltaY > 10) {
+                isScrolling = true;
+            }
+        }
+
+        function handleTouchEnd(e) {
+            if (isScrolling) return; // 如果正在滾動，不執行快速滑動
+            
+            touchEndY = e.changedTouches[0].clientY;
+            const duration = Date.now() - startTime;
+            
+            // 只有快速滑動才觸發頁面切換
+            if (duration < 300) {
+                handleSwipe();
+            }
+        }
+
+        function handleSwipe() {
+            const swipeThreshold = 30; // 降低閾值，讓快速滑動更靈敏
+            const swipeDistance = touchEndY - touchStartY;
+
+            if (Math.abs(swipeDistance) > swipeThreshold) {
+                if (swipeDistance > 0) {
+                    // 向下快速滑動 - 上一張
+                    previousImage();
+                } else {
+                    // 向上快速滑動 - 下一張
+                    nextImage();
+                }
+            }
+        }
+
+        // 添加滾動事件監聽器
+        function setupScrollControls() {
+            const imageContainer = document.getElementById('imageContainer');
+            
+            // 滾動事件監聽
+            let scrollTimeout;
+            let isUserScrolling = false;
+            
+            imageContainer.addEventListener('scroll', () => {
+                isUserScrolling = true;
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(() => {
+                    updateCurrentIndex();
+                    isUserScrolling = false;
+                }, 150); // 稍微增加延遲，減少抖動
+            }, { passive: true });
+
+            // 觸控事件監聽（優化的滑動體驗）
+            imageContainer.addEventListener('touchstart', handleTouchStart, { passive: true });
+            imageContainer.addEventListener('touchmove', handleTouchMove, { passive: true });
+            imageContainer.addEventListener('touchend', handleTouchEnd, { passive: true });
+        }
 
 
 
@@ -1366,8 +1219,8 @@
                     
                     if (isInRange) {
                         activeIndicatorIndex = i;
-                        break;
-                    }
+                    break;
+            }
                 }
             }
             
@@ -1443,7 +1296,7 @@
             // 初始化手機版分類顯示
             setTimeout(() => {
                 updateMobileCategoryDisplay();
-            }, 300); // 增加延遲確保 Swiper 已初始化
+            }, 200);
         });
     </script>
 </body>
