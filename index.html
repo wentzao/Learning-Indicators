@@ -210,17 +210,22 @@
             scroll-snap-align: start; /* 滾動吸附到頁面開始位置 */
         }
 
-        .image-page img {
+        /* 確保圖片有固定的預留空間，避免懶加載造成佈局跳動 */
+        .image-page img, .image-placeholder {
             max-width: 85%;
-            max-height: calc(100vh - 200px); /* 動態計算最大高度，扣除工具列、狀態列和padding */
+            min-height: 600px; /* 預留最小高度 */
+            max-height: calc(100vh - 200px); /* 動態計算最大高度 */
             width: auto;
             height: auto;
             object-fit: contain;
-            object-position: top; /* 圖片內容對齊頂部 */
+            object-position: top;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             display: block;
-            margin: 0 auto; /* 只在水平方向居中 */
+            margin: 0 auto;
+            background: #f9f9f9; /* 載入前的背景色 */
         }
+
+        /* 圖片樣式已整合到上方的通用樣式中 */
 
 
 
@@ -359,17 +364,24 @@
 
             .image-page {
                 min-height: auto; /* 改為自動高度，不強制佔滿螢幕 */
-                padding: 8px 15px 80px 15px; /* 底部留空間給懸浮工具列 */
+                padding: 3px 10px 15px 10px; /* 大幅減少所有間距 */
                 align-items: flex-start; /* 手機版也頂端對齊 */
             }
+            
+            /* 特別處理最後一張圖片，增加底部空間避免被按鈕遮擋 */
+            .image-page:last-child {
+                padding-bottom: 150px; /* 為最後一張圖片留出更多空間 */
+            }
 
-            .image-page img {
+            .image-page img, .image-placeholder {
                 max-width: 90%;
-                max-height: 90%;
+                min-height: 400px; /* 手機版預留較小的最小高度 */
+                max-height: 90vh; /* 手機版使用視窗高度 */
                 width: auto;
                 height: auto;
                 display: block;
                 margin: auto;
+                background: #f9f9f9; /* 載入前的背景色 */
             }
 
 
@@ -399,7 +411,7 @@
             .mobile-floating-toolbar {
                 display: flex !important;
                 position: fixed;
-                bottom: 0;
+                bottom: 20px; /* 從底部往上移 20px */
                 left: 0;
                 right: 0;
                 height: 60px;
@@ -464,7 +476,7 @@
             .mobile-category-menu {
                 display: block !important;
                 position: fixed;
-                bottom: 70px;
+                bottom: 90px; /* 配合按鈕位置調整 */
                 left: 50%;
                 transform: translateX(-50%);
                 background: rgba(52, 73, 94, 0.95);
@@ -596,17 +608,19 @@
 
             .image-page {
                 min-height: auto; /* 改為自動高度，不強制佔滿螢幕 */
-                padding: 5px 10px 75px 10px; /* 底部留空間給懸浮工具列 */
+                padding: 3px 10px 10px 10px; /* 減少所有方向的間距 */
                 align-items: flex-start; /* 小螢幕也頂端對齊 */
             }
 
-            .image-page img {
+            .image-page img, .image-placeholder {
                 max-width: 95%;
-                max-height: 95%;
+                min-height: 350px; /* 小螢幕預留更小的最小高度 */
+                max-height: 85vh; /* 小螢幕使用較小的視窗高度 */
                 width: auto;
                 height: auto;
                 display: block;
                 margin: auto;
+                background: #f9f9f9; /* 載入前的背景色 */
             }
 
 
@@ -643,6 +657,7 @@
             .mobile-floating-toolbar {
                 padding: 0 15px;
                 height: 55px;
+                bottom: 15px; /* 小螢幕稍微再靠近底部一點 */
             }
 
             .mobile-category-button {
@@ -652,7 +667,7 @@
             }
 
             .mobile-category-menu {
-                bottom: 65px;
+                bottom: 85px; /* 小螢幕也配合調整 */
                 min-width: 260px;
                 padding: 12px;
             }
@@ -830,6 +845,94 @@
             });
         }
 
+        // 圖片優化和預載入功能
+        const imageCache = new Map();
+        const loadingQueue = [];
+        let isPreloading = false;
+
+        // 創建優化的圖片載入器
+        function createOptimizedImage(imagePath, fallbackPath = null) {
+            return new Promise((resolve, reject) => {
+                // 檢查快取
+                if (imageCache.has(imagePath)) {
+                    resolve(imageCache.get(imagePath));
+                    return;
+                }
+
+                const img = new Image();
+                
+                // 添加載入超時
+                const timeout = setTimeout(() => {
+                    img.onload = img.onerror = null;
+                    if (fallbackPath) {
+                        createOptimizedImage(fallbackPath).then(resolve).catch(reject);
+                    } else {
+                        reject(new Error(`圖片載入超時: ${imagePath}`));
+                    }
+                }, 8000); // 8秒超時
+
+                img.onload = () => {
+                    clearTimeout(timeout);
+                    imageCache.set(imagePath, img.src);
+                    resolve(img.src);
+                };
+
+                img.onerror = () => {
+                    clearTimeout(timeout);
+                    console.warn(`圖片載入失敗: ${imagePath}`);
+                    if (fallbackPath) {
+                        createOptimizedImage(fallbackPath).then(resolve).catch(reject);
+                    } else {
+                        reject(new Error(`圖片載入失敗: ${imagePath}`));
+                    }
+                };
+
+                img.src = imagePath;
+            });
+        }
+
+        // 智能預載入（優先載入當前圖片附近的圖片）
+        function preloadNearbyImages(currentIndex, radius = 2) {
+            if (isPreloading) return;
+            isPreloading = true;
+
+            const toPreload = [];
+            
+            // 計算需要預載入的圖片範圍
+            for (let i = Math.max(0, currentIndex - radius); 
+                 i <= Math.min(images.length - 1, currentIndex + radius); 
+                 i++) {
+                if (!imageCache.has(images[i].path)) {
+                    toPreload.push(images[i]);
+                }
+            }
+
+            // 分批預載入，避免阻塞
+            const batchSize = 3;
+            let processed = 0;
+            
+            function processBatch() {
+                const batch = toPreload.slice(processed, processed + batchSize);
+                processed += batchSize;
+
+                Promise.allSettled(
+                    batch.map(img => createOptimizedImage(img.path))
+                ).then(() => {
+                    if (processed < toPreload.length) {
+                        setTimeout(processBatch, 100); // 小延遲避免阻塞
+                    } else {
+                        isPreloading = false;
+                    }
+                });
+            }
+
+            if (toPreload.length > 0) {
+                processBatch();
+            } else {
+                isPreloading = false;
+            }
+        }
+
         // 初始化
         async function init() {
             try {
@@ -910,7 +1013,7 @@
             });
         }
 
-        // 渲染所有圖片到垂直容器
+        // 渲染所有圖片到垂直容器（優化版）
         function renderImages() {
             const wrapper = document.getElementById('imagesWrapper');
             wrapper.innerHTML = '';
@@ -921,17 +1024,59 @@
                 page.id = `image-page-${index}`;
 
                 const img = document.createElement('img');
-                img.src = image.path;
+                
+                // 只有前3張圖片立即載入，其他使用懶加載
+                if (index < 3) {
+                    img.src = image.path;
+                    // 預載入前幾張圖片
+                    createOptimizedImage(image.path).catch(console.warn);
+                } else {
+                    img.dataset.src = image.path; // 懶加載
+                    img.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect fill="%23f0f0f0" width="200" height="100"/><text x="50%" y="50%" font-family="Arial" font-size="12" fill="%23999" text-anchor="middle" dominant-baseline="middle">載入中...</text></svg>';
+                }
+                
                 img.alt = `圖片 ${image.id + 1}`;
-                img.loading = 'lazy'; // 懶加載優化
+                img.loading = 'lazy';
 
-                // 錯誤處理
+                // 優化的錯誤處理
                 img.onerror = () => {
+                    // 如果是懶加載圖片載入失敗，嘗試載入實際圖片
+                    if (img.dataset.src && img.src !== img.dataset.src) {
+                        img.src = img.dataset.src;
+                        return;
+                    }
+                    
                     const errorDiv = document.createElement('div');
                     errorDiv.className = 'error-placeholder';
                     errorDiv.textContent = `圖片 ${image.id + 1} 載入失敗`;
+                    page.innerHTML = '';
                     page.appendChild(errorDiv);
                 };
+
+                // 交集觀察器實現懶加載
+                if (index >= 3) {
+                    const observer = new IntersectionObserver((entries) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                const lazyImg = entry.target;
+                                if (lazyImg.dataset.src) {
+                                    createOptimizedImage(lazyImg.dataset.src)
+                                        .then(src => {
+                                            lazyImg.src = src;
+                                            delete lazyImg.dataset.src;
+                                        })
+                                        .catch(() => {
+                                            lazyImg.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect fill="%23ffebee" width="200" height="100"/><text x="50%" y="50%" font-family="Arial" font-size="12" fill="%23d32f2f" text-anchor="middle" dominant-baseline="middle">載入失敗</text></svg>';
+                                        });
+                                    observer.unobserve(lazyImg);
+                                }
+                            }
+                        });
+                    }, { 
+                        rootMargin: '50px' // 提前50px開始載入
+                    });
+                    observer.observe(img);
+                }
 
                 page.appendChild(img);
                 wrapper.appendChild(page);
@@ -947,9 +1092,47 @@
             updateUI();
 
             const targetPage = document.getElementById(`image-page-${index}`);
-            if (targetPage) {
-                targetPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const container = document.getElementById('imageContainer');
+            
+            if (targetPage && container) {
+                // 手機版使用更精確的滾動定位
+                if (window.innerWidth <= 768) {
+                    // 計算目標圖片的精確位置
+                    const containerRect = container.getBoundingClientRect();
+                    const targetRect = targetPage.getBoundingClientRect();
+                    const currentScrollTop = container.scrollTop;
+                    
+                    // 針對超緊密間距(10px)的精確滾動定位
+                    let targetScrollTop;
+                    
+                    // 檢測實際的padding值來調整偏移
+                    const actualPadding = window.innerWidth <= 480 ? 10 : 15; // 小螢幕10px，一般手機15px
+                    
+                    // 精確計算滾動位置，確保圖片頂部對齊容器頂部
+                    targetScrollTop = currentScrollTop + (targetRect.top - containerRect.top) - (actualPadding - 5);
+                    
+                    // 特別處理最後一張圖片，確保不會滾動過頭
+                    if (index === images.length - 1) {
+                        const maxScrollTop = container.scrollHeight - container.clientHeight;
+                        // 對於最後一張圖片，考慮底部的150px空間
+                        targetScrollTop = Math.min(targetScrollTop, maxScrollTop - 30); // 留足夠緩衝
+                    }
+                    
+                    // 確保不會滾動到負值
+                    targetScrollTop = Math.max(0, targetScrollTop);
+                    
+                    container.scrollTo({
+                        top: targetScrollTop,
+                        behavior: 'smooth'
+                    });
+                } else {
+                    // 桌面版保持原有行為
+                    targetPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
             }
+
+            // 觸發預載入附近圖片
+            preloadNearbyImages(index);
         }
 
         // 基於滾動位置更新當前圖片索引
@@ -957,16 +1140,57 @@
             const container = document.getElementById('imageContainer');
             const pages = document.querySelectorAll('.image-page');
             
+            if (pages.length === 0) return;
+            
             let currentPageIndex = 0;
             const containerRect = container.getBoundingClientRect();
-            const centerY = containerRect.top + containerRect.height / 2;
-
-            pages.forEach((page, index) => {
-                const pageRect = page.getBoundingClientRect();
-                if (pageRect.top <= centerY && pageRect.bottom >= centerY) {
-                    currentPageIndex = index;
-                }
-            });
+            
+            // 手機版使用更精確的檢測邏輯，針對超緊密間距(10px)優化
+            if (window.innerWidth <= 768) {
+                // 對於超緊密間距，使用容器頂部作為主要參考點
+                const referenceY = containerRect.top + 20; // 更靠近頂部的檢測點
+                let bestMatch = { index: 0, score: -Infinity };
+                
+                pages.forEach((page, index) => {
+                    const pageRect = page.getBoundingClientRect();
+                    
+                    // 計算圖片頂部相對於參考點的位置
+                    const topDistance = pageRect.top - referenceY;
+                    const bottomDistance = pageRect.bottom - referenceY;
+                    
+                    // 評分系統：最接近參考點且圖片可見的獲得最高分
+                    let score = 0;
+                    
+                    if (topDistance <= 0 && bottomDistance >= 0) {
+                        // 圖片跨越參考點，獲得最高基礎分
+                        score = 1000;
+                        // 減去距離頂部的距離（越接近頂部分數越高）
+                        score -= Math.abs(topDistance);
+                    } else if (bottomDistance > 0) {
+                        // 圖片在參考點下方，分數遞減
+                        score = 500 - Math.abs(topDistance);
+                    } else {
+                        // 圖片在參考點上方，較低分數
+                        score = 100 - Math.abs(bottomDistance);
+                    }
+                    
+                    if (score > bestMatch.score) {
+                        bestMatch = { index, score };
+                    }
+                });
+                
+                currentPageIndex = bestMatch.index;
+            } else {
+                // 桌面版保持原有的中心點檢測
+                const centerY = containerRect.top + containerRect.height / 2;
+                
+                pages.forEach((page, index) => {
+                    const pageRect = page.getBoundingClientRect();
+                    if (pageRect.top <= centerY && pageRect.bottom >= centerY) {
+                        currentPageIndex = index;
+                    }
+                });
+            }
 
             if (currentPageIndex !== currentIndex) {
                 currentIndex = currentPageIndex;
@@ -1159,14 +1383,33 @@
             // 滾動事件監聽
             let scrollTimeout;
             let isUserScrolling = false;
+            let lastScrollTime = 0;
             
             imageContainer.addEventListener('scroll', () => {
                 isUserScrolling = true;
+                const now = Date.now();
+                
+                // 針對手機版緊密間距調整節流頻率
+                const throttleTime = window.innerWidth <= 768 ? 150 : 100; // 手機版降低頻率
+                const debounceTime = window.innerWidth <= 768 ? 200 : 150; // 手機版增加延遲
+                
+                // 節流控制
+                if (now - lastScrollTime < throttleTime) {
+                    clearTimeout(scrollTimeout);
+                    scrollTimeout = setTimeout(() => {
+                        updateCurrentIndex();
+                        isUserScrolling = false;
+                        lastScrollTime = Date.now();
+                    }, debounceTime);
+                    return;
+                }
+                
                 clearTimeout(scrollTimeout);
                 scrollTimeout = setTimeout(() => {
                     updateCurrentIndex();
                     isUserScrolling = false;
-                }, 150); // 稍微增加延遲，減少抖動
+                    lastScrollTime = Date.now();
+                }, debounceTime); // 根據設備調整延遲
             }, { passive: true });
 
             // 觸控事件監聽（優化的滑動體驗）
