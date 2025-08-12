@@ -248,6 +248,7 @@
             left: 50%;
             transform: translate(-50%, -50%);
             display: none;
+            z-index: 1000;
         }
 
         .loading.active {
@@ -266,6 +267,87 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        /* 圖片載入進度指示器 */
+        .image-loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+
+        .image-loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-content {
+            text-align: center;
+            color: white;
+            max-width: 300px;
+            padding: 20px;
+        }
+
+        .loading-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4a90e2, #357abd);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .progress-text {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 10px;
+        }
+
+        .loading-subtitle {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.4;
         }
 
         /* 錯誤訊息 */
@@ -681,6 +763,18 @@
         <!-- 縮圖會動態生成 -->
     </div>
 
+    <!-- 圖片載入進度指示器 -->
+    <div class="image-loading-overlay" id="imageLoadingOverlay">
+        <div class="loading-content">
+            <div class="loading-title">正在載入圖片...</div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="progress-text" id="progressText">0 / 0</div>
+            <div class="loading-subtitle">首次載入會將所有圖片快取到瀏覽器，<br>之後瀏覽會更加流暢</div>
+        </div>
+    </div>
+
     <!-- 主要顯示區域 -->
     <div class="main-display">
 
@@ -841,16 +935,19 @@
         const loadingQueue = [];
         let isPreloading = false;
 
-        // 創建優化的圖片載入器
+        // 創建優化的圖片載入器（支援 Service Worker 快取）
         function createOptimizedImage(imagePath, fallbackPath = null) {
             return new Promise((resolve, reject) => {
-                // 檢查快取
+                // 檢查記憶體快取
                 if (imageCache.has(imagePath)) {
                     resolve(imageCache.get(imagePath));
                     return;
                 }
 
                 const img = new Image();
+                
+                // 設定快取策略
+                img.crossOrigin = 'anonymous'; // 支援跨域快取
                 
                 // 添加載入超時
                 const timeout = setTimeout(() => {
@@ -860,12 +957,13 @@
                     } else {
                         reject(new Error(`圖片載入超時: ${imagePath}`));
                     }
-                }, 8000); // 8秒超時
+                }, 10000); // 延長到10秒，考慮到一次載入所有圖片
 
                 img.onload = () => {
                     clearTimeout(timeout);
-                    imageCache.set(imagePath, img.src);
-                    resolve(img.src);
+                    // 只在記憶體快取中存儲路徑，避免重複存儲二進制數據
+                    imageCache.set(imagePath, imagePath);
+                    resolve(imagePath);
                 };
 
                 img.onerror = () => {
@@ -878,50 +976,123 @@
                     }
                 };
 
+                // 使用原始路徑，讓 Service Worker 處理快取
                 img.src = imagePath;
             });
         }
 
-        // 智能預載入（優先載入當前圖片附近的圖片）
-        function preloadNearbyImages(currentIndex, radius = 2) {
-            if (isPreloading) return;
+        // 一次性載入所有圖片並顯示進度（避免重複載入）
+        async function preloadAllImagesWithProgress() {
+            if (isPreloading || images.length === 0) return;
             isPreloading = true;
 
-            const toPreload = [];
+            // 顯示進度條
+            showLoadingProgress();
             
-            // 計算需要預載入的圖片範圍
-            for (let i = Math.max(0, currentIndex - radius); 
-                 i <= Math.min(images.length - 1, currentIndex + radius); 
-                 i++) {
-                if (!imageCache.has(images[i].path)) {
-                    toPreload.push(images[i]);
+            // 檢查哪些圖片還沒快取
+            const uncachedImages = [];
+            let totalImages = images.length;
+            let alreadyCachedCount = 0;
+
+            if ('caches' in window) {
+                try {
+                    const cache = await caches.open('learning-indicators-images-v1');
+                    for (const image of images) {
+                        const fullUrl = new URL(image.path, window.location.origin).href;
+                        const cached = await cache.match(fullUrl);
+                        if (cached) {
+                            alreadyCachedCount++;
+                        } else {
+                            uncachedImages.push(image);
+                        }
+                    }
+                } catch (error) {
+                    console.warn('檢查快取狀態失敗，載入所有圖片:', error);
+                    uncachedImages.push(...images);
                 }
+            } else {
+                uncachedImages.push(...images);
             }
 
-            // 分批預載入，避免阻塞
-            const batchSize = 3;
-            let processed = 0;
+            console.log(`快取狀態：${alreadyCachedCount}/${totalImages} 已快取，需載入 ${uncachedImages.length} 張`);
             
-            function processBatch() {
-                const batch = toPreload.slice(processed, processed + batchSize);
-                processed += batchSize;
+            let loadedCount = alreadyCachedCount; // 從已快取數量開始計數
 
-                Promise.allSettled(
-                    batch.map(img => createOptimizedImage(img.path))
-                ).then(() => {
-                    if (processed < toPreload.length) {
-                        setTimeout(processBatch, 100); // 小延遲避免阻塞
-                    } else {
-                        isPreloading = false;
+            if (uncachedImages.length === 0) {
+                // 全部已快取，直接完成
+                updateLoadingProgress(totalImages, totalImages);
+                hideLoadingProgress();
+                isPreloading = false;
+                console.log('所有圖片已在快取中，無需重新載入');
+                return;
+            }
+
+            // 分批載入未快取的圖片
+            const batchSize = 5;
+            const batches = [];
+            
+            for (let i = 0; i < uncachedImages.length; i += batchSize) {
+                batches.push(uncachedImages.slice(i, i + batchSize));
+            }
+
+            for (const batch of batches) {
+                const batchPromises = batch.map(async (image) => {
+                    try {
+                        await createOptimizedImage(image.path);
+                        loadedCount++;
+                        updateLoadingProgress(loadedCount, totalImages);
+                        return { success: true, path: image.path };
+                    } catch (error) {
+                        console.warn(`圖片載入失敗: ${image.path}`, error);
+                        loadedCount++;
+                        updateLoadingProgress(loadedCount, totalImages);
+                        return { success: false, path: image.path, error };
                     }
                 });
+
+                // 等待當前批次完成再開始下一批次
+                await Promise.allSettled(batchPromises);
+                
+                // 小延遲避免阻塞UI
+                await new Promise(resolve => setTimeout(resolve, 50));
             }
 
-            if (toPreload.length > 0) {
-                processBatch();
-            } else {
-                isPreloading = false;
+            // 隱藏進度條
+            hideLoadingProgress();
+            isPreloading = false;
+
+            console.log(`圖片載入完成: ${loadedCount}/${totalImages} (新載入 ${uncachedImages.length} 張)`);
+        }
+
+        // 智能預載入（現在用於其他用途，保留備用）
+        function preloadNearbyImages(currentIndex, radius = 2) {
+            // 由於已經全部載入，這個函數現在主要用於觸發快取檢查
+            if (currentIndex >= 0 && currentIndex < images.length) {
+                const image = images[currentIndex];
+                if (!imageCache.has(image.path)) {
+                    createOptimizedImage(image.path).catch(console.warn);
+                }
             }
+        }
+
+        // 進度指示器控制函數
+        function showLoadingProgress() {
+            const overlay = document.getElementById('imageLoadingOverlay');
+            overlay.classList.add('active');
+        }
+
+        function updateLoadingProgress(loaded, total) {
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            
+            const percentage = (loaded / total) * 100;
+            progressBar.style.width = `${percentage}%`;
+            progressText.textContent = `${loaded} / ${total}`;
+        }
+
+        function hideLoadingProgress() {
+            const overlay = document.getElementById('imageLoadingOverlay');
+            overlay.classList.remove('active');
         }
 
         // 初始化
@@ -952,7 +1123,7 @@
                 document.getElementById('loading').classList.remove('active');
 
             renderSidebar();
-                renderImages();
+                await renderImages(); // 等待圖片載入完成
                 if (images.length > 0) {
                     currentIndex = 0;
                     updateUI();
@@ -966,6 +1137,7 @@
             } catch (error) {
                 console.error('初始化失敗:', error);
                 document.getElementById('loading').classList.remove('active');
+                hideLoadingProgress();
                 document.getElementById('errorPlaceholder').style.display = 'flex';
                 document.getElementById('errorPlaceholder').textContent = '初始化失敗，請重新整理頁面';
             }
@@ -1004,10 +1176,22 @@
             });
         }
 
-        // 渲染所有圖片到垂直容器（優化版）
-        function renderImages() {
+        // 渲染所有圖片到垂直容器（智能快取版本）
+        async function renderImages() {
             const wrapper = document.getElementById('imagesWrapper');
             wrapper.innerHTML = '';
+
+            // 檢查是否已有快取，決定是否需要顯示進度條
+            const cachedCount = await checkCacheStatus();
+            const needsPreloading = cachedCount < images.length * 0.8; // 80%以上已快取就不顯示進度
+
+            if (needsPreloading) {
+                console.log(`需要載入圖片：已快取 ${cachedCount}/${images.length}`);
+                // 只有在真正需要時才顯示進度並載入
+                await preloadAllImagesWithProgress();
+            } else {
+                console.log(`大部分圖片已快取 (${cachedCount}/${images.length})，直接渲染`);
+            }
 
             images.forEach((image, index) => {
                 const page = document.createElement('div');
@@ -1016,58 +1200,24 @@
 
                 const img = document.createElement('img');
                 
-                // 只有前3張圖片立即載入，其他使用懶加載
-                if (index < 3) {
-                    img.src = image.path;
-                    // 預載入前幾張圖片
-                    createOptimizedImage(image.path).catch(console.warn);
-                } else {
-                    img.dataset.src = image.path; // 懶加載
-                    img.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect fill="%23f0f0f0" width="200" height="100"/><text x="50%" y="50%" font-family="Arial" font-size="12" fill="%23999" text-anchor="middle" dominant-baseline="middle">載入中...</text></svg>';
-                }
+                // 直接使用圖片路徑，讓 Service Worker 處理快取
+                img.src = image.path;
+                
+                // 標記為已載入（用於記憶體快取狀態追蹤）
+                img.onload = () => {
+                    imageCache.set(image.path, image.path);
+                };
                 
                 img.alt = `圖片 ${image.id + 1}`;
-                img.loading = 'lazy';
 
-                // 優化的錯誤處理
+                // 錯誤處理
                 img.onerror = () => {
-                    // 如果是懶加載圖片載入失敗，嘗試載入實際圖片
-                    if (img.dataset.src && img.src !== img.dataset.src) {
-                        img.src = img.dataset.src;
-                        return;
-                    }
-                    
                     const errorDiv = document.createElement('div');
                     errorDiv.className = 'error-placeholder';
                     errorDiv.textContent = `圖片 ${image.id + 1} 載入失敗`;
                     page.innerHTML = '';
                     page.appendChild(errorDiv);
                 };
-
-                // 交集觀察器實現懶加載
-                if (index >= 3) {
-                    const observer = new IntersectionObserver((entries) => {
-                        entries.forEach(entry => {
-                            if (entry.isIntersecting) {
-                                const lazyImg = entry.target;
-                                if (lazyImg.dataset.src) {
-                                    createOptimizedImage(lazyImg.dataset.src)
-                                        .then(src => {
-                                            lazyImg.src = src;
-                                            delete lazyImg.dataset.src;
-                                        })
-                                        .catch(() => {
-                                            lazyImg.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect fill="%23ffebee" width="200" height="100"/><text x="50%" y="50%" font-family="Arial" font-size="12" fill="%23d32f2f" text-anchor="middle" dominant-baseline="middle">載入失敗</text></svg>';
-                                        });
-                                    observer.unobserve(lazyImg);
-                                }
-                            }
-                        });
-                    }, { 
-                        rootMargin: '50px' // 提前50px開始載入
-                    });
-                    observer.observe(img);
-                }
 
                 page.appendChild(img);
                 wrapper.appendChild(page);
@@ -1523,14 +1673,117 @@
             updateMobileDisplay();
         }
 
+        // Service Worker 註冊和快取管理
+        let serviceWorkerRegistration = null;
+
+        async function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                try {
+                    serviceWorkerRegistration = await navigator.serviceWorker.register('/sw.js');
+                    console.log('Service Worker 註冊成功:', serviceWorkerRegistration);
+                    
+                    // 監聽 SW 更新
+                    serviceWorkerRegistration.addEventListener('updatefound', () => {
+                        console.log('Service Worker 更新中...');
+                    });
+                    
+                } catch (error) {
+                    console.error('Service Worker 註冊失敗:', error);
+                }
+            } else {
+                console.log('瀏覽器不支援 Service Worker');
+            }
+        }
+
+        // 使用 Service Worker 快取圖片
+        async function cacheImagesWithServiceWorker() {
+            if (!serviceWorkerRegistration || !serviceWorkerRegistration.active) {
+                console.log('Service Worker 未就緒，使用一般快取');
+                return;
+            }
+
+            const imageUrls = images.map(img => new URL(img.path, window.location.origin).href);
+            
+            try {
+                // 創建一個訊息通道與 SW 通信
+                const messageChannel = new MessageChannel();
+                
+                return new Promise((resolve, reject) => {
+                    messageChannel.port1.onmessage = (event) => {
+                        if (event.data.success) {
+                            console.log('Service Worker 快取完成');
+                            resolve();
+                        } else {
+                            console.error('Service Worker 快取失敗:', event.data.error);
+                            reject(event.data.error);
+                        }
+                    };
+
+                    // 發送快取請求給 SW
+                    serviceWorkerRegistration.active.postMessage(
+                        {
+                            type: 'CACHE_IMAGES',
+                            urls: imageUrls
+                        },
+                        [messageChannel.port2]
+                    );
+                });
+            } catch (error) {
+                console.error('Service Worker 快取通信失敗:', error);
+            }
+        }
+
+        // 檢查快取狀態
+        async function checkCacheStatus() {
+            if ('caches' in window) {
+                try {
+                    const cache = await caches.open('learning-indicators-images-v1');
+                    const keys = await cache.keys();
+                    console.log(`快取中已有 ${keys.length} 個圖片文件`);
+                    return keys.length;
+                } catch (error) {
+                    console.error('檢查快取狀態失敗:', error);
+                    return 0;
+                }
+            }
+            return 0;
+        }
+
         // 初始化
-        window.addEventListener('DOMContentLoaded', () => {
-            init();
+        window.addEventListener('DOMContentLoaded', async () => {
+            // 首先註冊 Service Worker
+            await registerServiceWorker();
+            
+            // 檢查現有快取
+            const cachedCount = await checkCacheStatus();
+            console.log(`發現 ${cachedCount} 個已快取的圖片`);
+            
+            // 初始化應用
+            await init();
             setupMobileControls();
+            
             // 初始化手機版分類顯示
             setTimeout(() => {
                 updateMobileCategoryDisplay();
             }, 200);
+            
+            // 智能補充快取：只在需要時使用 Service Worker 補充
+            if (serviceWorkerRegistration) {
+                setTimeout(async () => {
+                    try {
+                        const currentCachedCount = await checkCacheStatus();
+                        if (currentCachedCount < images.length) {
+                            console.log(`Service Worker 補充快取中：${currentCachedCount}/${images.length}`);
+                            await cacheImagesWithServiceWorker();
+                            console.log('所有圖片已成功快取到瀏覽器');
+                        } else {
+                            console.log('所有圖片已完整快取，無需再次載入');
+                        }
+                    } catch (error) {
+                        console.warn('Service Worker 快取失敗，但應用仍可正常使用:', error);
+                    }
+                }, 1000);
+            }
         });
     </script>
 </body>
