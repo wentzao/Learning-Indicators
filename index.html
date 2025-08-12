@@ -53,13 +53,20 @@
         }
 
         .thumbnail-item:hover {
-            border-color: #4a90e2;
+            border-color: #02a568;
             transform: scale(1.02);
         }
 
         .thumbnail-item.active {
-            border-color: #4a90e2;
-            box-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
+            border-color: #02a568;
+            box-shadow: 0 0 15px rgba(2, 165, 104, 0.5);
+            transform: scale(1.05);
+        }
+        
+        .thumbnail-item.active .thumbnail-number {
+            background: #02a568;
+            color: white;
+            font-weight: 600;
         }
 
         .thumbnail-item img {
@@ -95,7 +102,7 @@
 
         /* 學習指標工作列 */
         .indicator-toolbar {
-            background: #34495e;
+            background: #02a568;
             padding: 12px 20px;
             border-bottom: 1px solid #2c3e50;
             overflow-x: auto;
@@ -115,7 +122,7 @@
         }
 
         .indicator-toolbar::-webkit-scrollbar-thumb {
-            background: #4a90e2;
+            background: #02a568;
             border-radius: 2px;
         }
 
@@ -148,9 +155,24 @@
         }
 
         .indicator-btn.active {
-            background: #3498db;
-            border-color: #3498db;
-            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+            background: rgba(255, 255, 255, 0.95);
+            color: #02a568;
+            border: 2px solid #02a568;
+            box-shadow: 0 0 0 3px rgba(2, 165, 104, 0.2), 0 4px 12px rgba(2, 165, 104, 0.15);
+            font-weight: 600;
+            transform: translateY(-1px) scale(1.02);
+        }
+        
+        .indicator-btn.active .indicator-icon {
+            transform: scale(1.05);
+            filter: brightness(1.1);
+        }
+        
+        .indicator-btn.active .page-number {
+            background: #02a568;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
         }
 
         .indicator-icon {
@@ -259,7 +281,7 @@
             width: 40px;
             height: 40px;
             border: 3px solid #f3f3f3;
-            border-top: 3px solid #4a90e2;
+            border-top: 3px solid #02a568;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -314,7 +336,7 @@
 
         .progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, #4a90e2, #357abd);
+            background: linear-gradient(90deg, #02a568, #018f5b);
             border-radius: 4px;
             width: 0%;
             transition: width 0.3s ease;
@@ -499,7 +521,7 @@
             }
 
             .mobile-category-button {
-                background: rgba(52, 73, 94, 0.9);
+                background: rgba(2, 165, 104, 0.9);
                 color: white;
                 border: none;
                 border-radius: 25px;
@@ -520,7 +542,7 @@
             }
 
             .mobile-category-button:hover {
-                background: rgba(52, 73, 94, 1);
+                background: rgba(2, 165, 104, 1);
                 transform: translateY(-2px);
                 box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
             }
@@ -554,7 +576,7 @@
                 bottom: 90px; /* 配合按鈕位置調整 */
                 left: 50%;
                 transform: translateX(-50%);
-                background: rgba(52, 73, 94, 0.95);
+                background: rgba(2, 165, 104, 0.95);
                 border-radius: 15px;
                 padding: 15px;
                 box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
@@ -586,7 +608,7 @@
                 height: 0;
                 border-left: 8px solid transparent;
                 border-right: 8px solid transparent;
-                border-top: 8px solid rgba(52, 73, 94, 0.95);
+                border-top: 8px solid rgba(2, 165, 104, 0.95);
             }
 
             .mobile-menu-item {
@@ -605,12 +627,32 @@
 
             .mobile-menu-item:hover {
                 background: rgba(255, 255, 255, 0.1);
-                transform: translateX(3px);
+                transform: scale(1.02);
             }
 
             .mobile-menu-item.active {
-                background: rgba(52, 152, 219, 0.3);
-                border-left: 3px solid #3498db;
+                background: rgba(255, 255, 255, 0.2);
+                /* border-left: 4px solid #1cbb29; */
+                border-radius: 8px;
+                font-weight: 600;
+                box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+                transform: scale(1.05);
+            }
+            
+            .mobile-menu-item.active .mobile-menu-text {
+                color: #ffffff;
+                font-weight: 600;
+            }
+            
+            .mobile-menu-item.active .mobile-menu-icon {
+                filter: brightness(1.3);
+                transform: scale(1.1);
+            }
+            
+            .mobile-menu-item.active .mobile-menu-page {
+                background: rgba(28, 187, 41, 0.8);
+                color: white;
+                font-weight: 500;
             }
 
             .mobile-menu-icon {
