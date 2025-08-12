@@ -135,7 +135,7 @@
         .indicator-btn {
             background: rgba(255, 255, 255, 0.1);
             color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.2);
             padding: 8px 16px;
             border-radius: 20px;
             cursor: pointer;
@@ -150,29 +150,24 @@
 
         .indicator-btn:hover {
             background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
         }
 
         .indicator-btn.active {
             background: rgba(255, 255, 255, 0.95);
             color: #02a568;
-            border: 2px solid #02a568;
-            box-shadow: 0 0 0 3px rgba(2, 165, 104, 0.2), 0 4px 12px rgba(2, 165, 104, 0.15);
+            border-color: #02a568;
             font-weight: 600;
-            transform: translateY(-1px) scale(1.02);
         }
         
         .indicator-btn.active .indicator-icon {
-            transform: scale(1.05);
-            filter: brightness(1.1);
+            /* 移除 transform，只保留顏色變化 */
         }
         
         .indicator-btn.active .page-number {
             background: #02a568;
             color: white;
             font-weight: 600;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
         }
 
         .indicator-icon {
