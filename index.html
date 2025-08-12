@@ -1721,7 +1721,10 @@
         async function registerServiceWorker() {
             if ('serviceWorker' in navigator) {
                 try {
-                    serviceWorkerRegistration = await navigator.serviceWorker.register('/sw.js');
+                    // 改用相對路徑，適用於 GitHub Pages
+                    serviceWorkerRegistration = await navigator.serviceWorker.register('./sw.js', {
+                        scope: './' // 也設定相對的 scope
+                    });
                     console.log('Service Worker 註冊成功:', serviceWorkerRegistration);
                     
                     // 監聽 SW 更新
@@ -1729,8 +1732,19 @@
                         console.log('Service Worker 更新中...');
                     });
                     
+                    // 檢查是否立即可用
+                    if (serviceWorkerRegistration.active) {
+                        console.log('Service Worker 已啟用');
+                    } else if (serviceWorkerRegistration.installing) {
+                        console.log('Service Worker 正在安裝...');
+                    } else if (serviceWorkerRegistration.waiting) {
+                        console.log('Service Worker 等待啟用...');
+                    }
+                    
                 } catch (error) {
                     console.error('Service Worker 註冊失敗:', error);
+                    // 如果 Service Worker 註冊失敗，應用仍可正常運作
+                    console.log('應用將在沒有快取優化的情況下運行');
                 }
             } else {
                 console.log('瀏覽器不支援 Service Worker');

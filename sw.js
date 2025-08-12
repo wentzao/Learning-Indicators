@@ -1,10 +1,22 @@
 const CACHE_NAME = 'learning-indicators-v1';
 const IMAGES_CACHE = 'learning-indicators-images-v1';
 
-// 要快取的核心文件
+// 動態獲取基礎路徑，適用於 GitHub Pages
+const getBasePath = () => {
+    // 從 Service Worker 的 location 獲取基礎路徑
+    const swUrl = new URL(self.location);
+    const pathSegments = swUrl.pathname.split('/');
+    pathSegments.pop(); // 移除 sw.js
+    return pathSegments.join('/') || '/';
+};
+
+const BASE_PATH = getBasePath();
+
+// 要快取的核心文件 - 使用動態基礎路徑
 const CORE_FILES = [
-    '/',
-    '/index.html',
+    BASE_PATH + '/',
+    BASE_PATH + '/index.html',
+    BASE_PATH + '/sw.js'
     // 可以添加其他核心CSS/JS文件
 ];
 
