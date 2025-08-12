@@ -210,22 +210,17 @@
             scroll-snap-align: start; /* 滾動吸附到頁面開始位置 */
         }
 
-        /* 確保圖片有固定的預留空間，避免懶加載造成佈局跳動 */
-        .image-page img, .image-placeholder {
+        .image-page img {
             max-width: 85%;
-            min-height: 600px; /* 預留最小高度 */
-            max-height: calc(100vh - 200px); /* 動態計算最大高度 */
+            max-height: calc(100vh - 200px); /* 動態計算最大高度，扣除工具列、狀態列和padding */
             width: auto;
             height: auto;
             object-fit: contain;
-            object-position: top;
+            object-position: top; /* 圖片內容對齊頂部 */
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             display: block;
-            margin: 0 auto;
-            background: #f9f9f9; /* 載入前的背景色 */
+            margin: 0 auto; /* 只在水平方向居中 */
         }
-
-        /* 圖片樣式已整合到上方的通用樣式中 */
 
 
 
@@ -373,15 +368,13 @@
                 padding-bottom: 150px; /* 為最後一張圖片留出更多空間 */
             }
 
-            .image-page img, .image-placeholder {
+            .image-page img {
                 max-width: 90%;
-                min-height: 400px; /* 手機版預留較小的最小高度 */
-                max-height: 90vh; /* 手機版使用視窗高度 */
+                max-height: 90%;
                 width: auto;
                 height: auto;
                 display: block;
                 margin: auto;
-                background: #f9f9f9; /* 載入前的背景色 */
             }
 
 
@@ -612,15 +605,13 @@
                 align-items: flex-start; /* 小螢幕也頂端對齊 */
             }
 
-            .image-page img, .image-placeholder {
+            .image-page img {
                 max-width: 95%;
-                min-height: 350px; /* 小螢幕預留更小的最小高度 */
-                max-height: 85vh; /* 小螢幕使用較小的視窗高度 */
+                max-height: 95%;
                 width: auto;
                 height: auto;
                 display: block;
                 margin: auto;
-                background: #f9f9f9; /* 載入前的背景色 */
             }
 
 
