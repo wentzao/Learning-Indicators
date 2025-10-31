@@ -1,1841 +1,1466 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>學習指標手冊</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", Arial, sans-serif;
-            background: #f5f5f5;
-            height: 100vh;
-            display: flex;
-            overflow: hidden;
-        }
-
-        /* 左側縮圖列表 */
-        .sidebar {
-            width: 220px;
-            background: #3a3f45;
-            padding: 20px 15px;
-            overflow-y: auto;
-            flex-shrink: 0;
-        }
-
-        .sidebar::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .sidebar::-webkit-scrollbar-track {
-            background: #2a2f35;
-        }
-
-        .sidebar::-webkit-scrollbar-thumb {
-            background: #666;
-            border-radius: 3px;
-        }
-
-        .thumbnail-item {
-            margin-bottom: 15px;
-            cursor: pointer;
-            position: relative;
-            border: 2px solid transparent;
-            border-radius: 4px;
-            overflow: hidden;
-            transition: all 0.2s ease;
-            background: white;
-        }
-
-        .thumbnail-item:hover {
-            border-color: #02a568;
-            transform: scale(1.02);
-        }
-
-        .thumbnail-item.active {
-            border-color: #02a568;
-            box-shadow: 0 0 15px rgba(2, 165, 104, 0.5);
-            transform: scale(1.05);
-        }
-        
-        .thumbnail-item.active .thumbnail-number {
-            background: #02a568;
-            color: white;
-            font-weight: 600;
-        }
-
-        .thumbnail-item img {
-            width: 100%;
-            height: 120px;
-            object-fit: cover;
-            display: block;
-        }
-
-        .thumbnail-number {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 5px;
-            text-align: center;
-            font-size: 14px;
-        }
-
-        /* 主要顯示區域 */
-        .main-display {
-            flex: 1;
-            background: white;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            overflow: hidden;
-        }
-
-
-
-        /* 學習指標工作列 */
-        .indicator-toolbar {
-            background: #02a568;
-            padding: 12px 20px;
-            border-bottom: 1px solid #2c3e50;
-            overflow-x: auto;
-            overflow-y: hidden;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .indicator-toolbar::-webkit-scrollbar {
-            height: 4px;
-        }
-
-        .indicator-toolbar::-webkit-scrollbar-track {
-            background: #2c3e50;
-        }
-
-        .indicator-toolbar::-webkit-scrollbar-thumb {
-            background: #02a568;
-            border-radius: 2px;
-        }
-
-        .indicator-nav {
-            display: flex;
-            gap: 8px;
-            min-width: max-content;
-        }
-
-        .indicator-btn {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 13px;
-            white-space: nowrap;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .indicator-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: rgba(255, 255, 255, 0.4);
-        }
-
-        .indicator-btn.active {
-            background: rgba(255, 255, 255, 0.95);
-            color: #02a568;
-            border-color: #02a568;
-            font-weight: 600;
-        }
-        
-        .indicator-btn.active .indicator-icon {
-            /* 移除 transform，只保留顏色變化 */
-        }
-        
-        .indicator-btn.active .page-number {
-            background: #02a568;
-            color: white;
-            font-weight: 600;
-        }
-
-        .indicator-icon {
-            width: 16px;
-            height: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-        }
-
-        .page-number {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-size: 11px;
-            margin-left: 4px;
-        }
-
-
-
-        /* 圖片容器 - 垂直滾動模式 */
-        .image-container {
-            flex: 1;
-            background: #fafafa;
-            position: relative;
-            overflow-y: auto;
-            overflow-x: hidden;
-            scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch; /* iOS Safari 滑動優化 */
-            scroll-snap-type: y proximity; /* 輕微的滾動吸附效果 */
-        }
-
-        .images-wrapper {
-            display: flex;
-            flex-direction: column;
-            gap: 0;
-            min-height: 100%;
-        }
-
-        /* 手機版調整圖片間距 */
-        @media (max-width: 768px) {
-            .images-wrapper {
-                gap: 0; /* 手機版圖片間距更緊密 */
-            }
-        }
-
-        .image-page {
-            width: 100%;
-            min-height: calc(100vh - 120px); /* 扣除indicator-toolbar和status-bar的高度 */
-            display: flex;
-            justify-content: center;
-            align-items: flex-start; /* 改為頂端對齊 */
-            padding: 30px 20px 20px 20px; /* 頂部稍微多一點padding */
-            box-sizing: border-box;
-            position: relative;
-            scroll-snap-align: start; /* 滾動吸附到頁面開始位置 */
-        }
-
-        .image-page img {
-            max-width: 85%;
-            max-height: calc(100vh - 200px); /* 動態計算最大高度，扣除工具列、狀態列和padding */
-            width: auto;
-            height: auto;
-            object-fit: contain;
-            object-position: top; /* 圖片內容對齊頂部 */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            display: block;
-            margin: 0 auto; /* 只在水平方向居中 */
-        }
-
-
-
-        /* 底部狀態列 */
-        .status-bar {
-            background: #f0f0f0;
-            padding: 10px 20px;
-            border-top: 1px solid #ddd;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 14px;
-            color: #666;
-            position: sticky;
-            bottom: 0;
-            z-index: 100;
-        }
-
-
-
-        /* Loading 動畫 */
-        .loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            display: none;
-            z-index: 1000;
-        }
-
-        .loading.active {
-            display: block;
-        }
-
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #02a568;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* 圖片載入進度指示器 */
-        .image-loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
-        }
-
-        .image-loading-overlay.active {
-            display: flex;
-        }
-
-        .loading-content {
-            text-align: center;
-            color: white;
-            max-width: 300px;
-            padding: 20px;
-        }
-
-        .loading-title {
-            font-size: 18px;
-            font-weight: 500;
-            margin-bottom: 20px;
-        }
-
-        .progress-container {
-            width: 100%;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
-            overflow: hidden;
-            margin-bottom: 15px;
-        }
-
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #02a568, #018f5b);
-            border-radius: 4px;
-            width: 0%;
-            transition: width 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .progress-bar::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-            animation: shimmer 2s infinite;
-        }
-
-        @keyframes shimmer {
-            0% { left: -100%; }
-            100% { left: 100%; }
-        }
-
-        .progress-text {
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.9);
-            margin-bottom: 10px;
-        }
-
-        .loading-subtitle {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.7);
-            line-height: 1.4;
-        }
-
-        /* 錯誤訊息 */
-        .error-placeholder {
-            width: 100%;
-            max-width: 400px;
-            height: 300px;
-            background: #f0f0f0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #999;
-            font-size: 16px;
-            border: 2px dashed #ddd;
-            border-radius: 4px;
-        }
-
-        /* 手機版收闔按鈕 - 預設隱藏 */
-        .mobile-toggle {
-            display: none;
-        }
-
-        /* 手機版懸浮toolbar - 預設隱藏 */
-        .mobile-floating-toolbar {
-            display: none;
-        }
-        
-        /* 手機版分類選單 - 預設隱藏 */
-        .mobile-category-menu {
-            display: none;
-        }
-
-        /* 響應式調整 */
-        @media (max-width: 768px) {
-            body {
-                flex-direction: row; /* 改回橫向佈局 */
-            }
-
-            /* 隱藏手機版不需要的元素 */
-            .status-bar {
-                display: none;
-            }
-
-            .sidebar {
-                width: 220px; /* 保持原始寬度 */
-                height: 100vh; /* 全高度 */
-                padding: 60px 15px 20px 15px; /* 頂部留空間給按鈕 */
-                display: flex;
-                flex-direction: column; /* 改回縱向佈局 */
-                overflow-x: hidden;
-                overflow-y: auto;
-                position: fixed; /* 固定位置 */
-                left: 0;
-                top: 0;
-                transform: translateX(-220px); /* 預設隱藏 */
-                transition: transform 0.3s ease;
-                z-index: 999;
-            }
-
-            .sidebar.show {
-                transform: translateX(0); /* 顯示時移入 */
-            }
-
-            .sidebar::-webkit-scrollbar {
-                width: 6px;
-                height: auto;
-            }
-
-            .thumbnail-item {
-                flex-shrink: 0;
-                width: 100%; /* 佔滿寬度 */
-                margin-right: 0;
-                margin-bottom: 15px; /* 恢復底部間距 */
-            }
-
-            .thumbnail-item img {
-                height: 120px; /* 恢復原始高度 */
-                width: 100%;
-            }
-
-            .thumbnail-number {
-                font-size: 14px; /* 恢復原始字體大小 */
-                padding: 5px;
-            }
-
-            .main-display {
-                width: 100%; /* 佔滿整個寬度 */
-                height: 100vh; /* 全高度 */
-                margin-left: 0; /* 移除左邊距 */
-            }
-
-            .image-page {
-                min-height: auto; /* 改為自動高度，不強制佔滿螢幕 */
-                padding: 3px 10px 15px 10px; /* 大幅減少所有間距 */
-                align-items: flex-start; /* 手機版也頂端對齊 */
-            }
-            
-            /* 特別處理最後一張圖片，增加底部空間避免被按鈕遮擋 */
-            .image-page:last-child {
-                padding-bottom: 150px; /* 為最後一張圖片留出更多空間 */
-            }
-
-            .image-page img {
-                max-width: 90%;
-                max-height: 90%;
-                width: auto;
-                height: auto;
-                display: block;
-                margin: auto;
-            }
-
-
-
-            /* 指標工作列響應式 */
-            .indicator-toolbar {
-                padding: 8px 15px;
-                display: none; /* 手機版隱藏原本的toolbar */
-            }
-
-            .indicator-btn {
-                padding: 6px 12px;
-                font-size: 12px;
-                min-width: auto; /* 允許按鈕縮放 */
-            }
-
-            .indicator-btn span:not(.indicator-icon):not(.page-number) {
-                display: inline; /* 顯示指標名稱 */
-            }
-
-            .page-number {
-                font-size: 10px;
-                margin-left: 2px;
-            }
-
-            /* 啟用手機版懸浮toolbar */
-            .mobile-floating-toolbar {
-                display: flex !important;
-                position: fixed;
-                bottom: 20px; /* 從底部往上移 20px */
-                left: 0;
-                right: 0;
-                height: 60px;
-                z-index: 200;
-                align-items: center;
-                justify-content: center;
-                background: transparent;
-                padding: 0 20px;
-                pointer-events: none; /* 背景不攔截點擊 */
-            }
-
-            .mobile-category-button {
-                background: rgba(2, 165, 104, 0.9);
-                color: white;
-                border: none;
-                border-radius: 25px;
-                padding: 12px 20px;
-                font-size: 14px;
-                font-weight: 500;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-                cursor: pointer;
-                transition: all 0.3s ease;
-                pointer-events: auto; /* 按鈕可以點擊 */
-                backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px);
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                min-width: 140px;
-                justify-content: center;
-            }
-
-            .mobile-category-button:hover {
-                background: rgba(2, 165, 104, 1);
-                transform: translateY(-2px);
-                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-            }
-
-            .mobile-category-button:active {
-                transform: translateY(0);
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-            }
-
-            .category-icon {
-                font-size: 16px;
-            }
-
-            .category-name {
-                font-size: 13px;
-            }
-
-            .dropdown-arrow {
-                font-size: 12px;
-                transition: transform 0.3s ease;
-            }
-
-            .mobile-category-button.active .dropdown-arrow {
-                transform: rotate(180deg);
-            }
-
-            /* 啟用向上彈出的分類選單 */
-            .mobile-category-menu {
-                display: block !important;
-                position: fixed;
-                bottom: 90px; /* 配合按鈕位置調整 */
-                left: 50%;
-                transform: translateX(-50%);
-                background: rgba(2, 165, 104, 0.95);
-                border-radius: 15px;
-                padding: 15px;
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-                backdrop-filter: blur(15px);
-                -webkit-backdrop-filter: blur(15px);
-                z-index: 199;
-                opacity: 0;
-                visibility: hidden;
-                transform: translateX(-50%) translateY(20px);
-                transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-                pointer-events: auto;
-                min-width: 280px;
-                max-width: 90vw;
-            }
-
-            .mobile-category-menu.show {
-                opacity: 1;
-                visibility: visible;
-                transform: translateX(-50%) translateY(0);
-            }
-
-            .mobile-category-menu::before {
-                content: '';
-                position: absolute;
-                bottom: -8px;
-                left: 50%;
-                transform: translateX(-50%);
-                width: 0;
-                height: 0;
-                border-left: 8px solid transparent;
-                border-right: 8px solid transparent;
-                border-top: 8px solid rgba(2, 165, 104, 0.95);
-            }
-
-            .mobile-menu-item {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                padding: 12px 15px;
-                margin: 4px 0;
-                border-radius: 10px;
-                cursor: pointer;
-                transition: all 0.2s ease;
-                color: white;
-                text-decoration: none;
-                background: transparent;
-            }
-
-            .mobile-menu-item:hover {
-                background: rgba(255, 255, 255, 0.1);
-                transform: scale(1.02);
-            }
-
-            .mobile-menu-item.active {
-                background: rgba(255, 255, 255, 0.2);
-                /* border-left: 4px solid #1cbb29; */
-                border-radius: 8px;
-                font-weight: 600;
-                box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-                transform: scale(1.05);
-            }
-            
-            .mobile-menu-item.active .mobile-menu-text {
-                color: #ffffff;
-                font-weight: 600;
-            }
-            
-            .mobile-menu-item.active .mobile-menu-icon {
-                filter: brightness(1.3);
-                transform: scale(1.1);
-            }
-            
-            .mobile-menu-item.active .mobile-menu-page {
-                background: rgba(28, 187, 41, 0.8);
-                color: white;
-                font-weight: 500;
-            }
-
-            .mobile-menu-icon {
-                width: 20px;
-                height: 20px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 16px;
-            }
-
-            .mobile-menu-text {
-                flex: 1;
-                font-size: 14px;
-                font-weight: 400;
-            }
-
-            .mobile-menu-page {
-                font-size: 12px;
-                color: rgba(255, 255, 255, 0.7);
-                background: rgba(255, 255, 255, 0.1);
-                padding: 2px 8px;
-                border-radius: 8px;
-            }
-        }
-
-        /* 更小螢幕調整 */
-        @media (max-width: 480px) {
-            .mobile-toggle {
-                width: 35px;
-                height: 35px;
-                top: 15px;
-                left: 8px;
-                font-size: 14px;
-            }
-
-            .mobile-toggle.active {
-                left: 200px;
-            }
-
-            .sidebar {
-                width: 200px; /* 小螢幕時縮小寬度 */
-                padding: 50px 10px 15px 10px;
-                transform: translateX(-200px);
-            }
-
-            .sidebar.show {
-                transform: translateX(0);
-            }
-
-            .thumbnail-item {
-                width: 100%;
-                margin-bottom: 12px;
-            }
-
-            .thumbnail-item img {
-                height: 100px; /* 小螢幕縮小高度 */
-                width: 100%;
-            }
-
-            .thumbnail-number {
-                font-size: 12px;
-                padding: 3px;
-            }
-
-            .main-display {
-                width: 100%;
-                height: 100vh;
-            }
-
-            .image-page {
-                min-height: auto; /* 改為自動高度，不強制佔滿螢幕 */
-                padding: 3px 10px 10px 10px; /* 減少所有方向的間距 */
-                align-items: flex-start; /* 小螢幕也頂端對齊 */
-            }
-
-            .image-page img {
-                max-width: 95%;
-                max-height: 95%;
-                width: auto;
-                height: auto;
-                display: block;
-                margin: auto;
-            }
-
-
-
-            /* 更小螢幕的指標工作列 */
-            .indicator-toolbar {
-                padding: 6px 10px;
-                display: none; /* 小螢幕也隱藏原本的toolbar */
-            }
-
-            .indicator-btn {
-                padding: 4px 8px;
-                font-size: 11px;
-                gap: 4px;
-                min-width: auto;
-            }
-
-            .indicator-btn span:not(.indicator-icon):not(.page-number) {
-                display: inline; /* 小螢幕也顯示完整名稱 */
-            }
-
-            .indicator-icon {
-                width: 14px;
-                height: 14px;
-                font-size: 10px;
-            }
-
-            .page-number {
-                font-size: 9px;
-                padding: 1px 4px;
-            }
-
-            /* 更小螢幕的懸浮toolbar調整 */
-            .mobile-floating-toolbar {
-                padding: 0 15px;
-                height: 55px;
-                bottom: 15px; /* 小螢幕稍微再靠近底部一點 */
-            }
-
-            .mobile-category-button {
-                padding: 10px 18px;
-                font-size: 13px;
-                min-width: 120px;
-            }
-
-            .mobile-category-menu {
-                bottom: 85px; /* 小螢幕也配合調整 */
-                min-width: 260px;
-                padding: 12px;
-            }
-
-            .mobile-menu-item {
-                padding: 10px 12px;
-            }
-
-            .mobile-menu-text {
-                font-size: 13px;
-            }
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>幼兒園教保活動課程大綱 - 學習指標</title>
+  <style>
+    body {
+      font-family: "Microsoft JhengHei", Arial, sans-serif;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    .domain-section {
+      margin-bottom: 60px;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .domain-title {
+      font-size: 28px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: #333;
+      border-bottom: 3px solid #8db255;
+      padding-bottom: 10px;
+    }
+    
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+    }
+    
+    .summary-table th {
+      background-color: #8db255;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      font-size: 18px;
+      border: 1px solid #7ba044;
+    }
+    
+    .summary-table td {
+      border: 1px solid #ddd;
+      padding: 15px;
+      vertical-align: top;
+    }
+
+    /* 空的表格單元格顯示深灰色背景 */
+    .summary-table td:empty,
+    .summary-table td.empty-cell {
+      background-color: #e8e8e8;
+    }
+    
+    .summary-table .ability-cell {
+      background-color: #e8f1d4;
+      font-weight: bold;
+      text-align: center;
+      width: 150px;
+      vertical-align: middle;
+    }
+    
+    .summary-table .goal-code {
+      font-weight: bold;
+      color: #2c5282;
+      margin-right: 8px;
+    }
+
+    .summary-cell-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .summary-cell-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .goal-desc {
+      line-height: 1.6;
+    }
+
+    /* 有 colspan 的單元格水平垂直置中 */
+    .summary-table td[colspan] {
+      text-align: center !important;
+      vertical-align: middle !important;
+    }
+
+    /* 有 colspan 的內容也要置中 */
+    .summary-table td[colspan] .summary-cell-item {
+      justify-content: center;
+    }
+
+    /* 有 rowspan 的單元格垂直置中 */
+    .summary-table td[rowspan] {
+      vertical-align: middle !important;
+    }
+
+    /* 沒有 colspan 的單元格靠左對齊 */
+    /* .summary-table td:not([colspan]) {
+      text-align: left;
+      vertical-align: top;
+    } */
+
+    /* 對角線表頭樣式 */
+    .diagonal-header {
+      background-image: linear-gradient(to bottom left,
+        transparent 0%,
+        transparent calc(50% - 0.8px),
+        #7ba044 calc(50% - 0.8px),
+        #7ba044 calc(50% + 0.8px),
+        transparent calc(50% + 0.8px),
+        transparent 100%);
+      position: relative;
+      padding: 20px !important;
+      min-width: 150px;
+      min-height: 80px;
+    }
+
+    .diagonal-header .top-right {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 16px;
+      line-height: 1.3;
+      text-align: right;
+    }
+
+    .diagonal-header .bottom-left {
+      position: absolute;
+      bottom: 10px;
+      left: 15px;
+      font-size: 16px;
+      line-height: 1.3;
+    }
+    
+    .detail-title {
+      font-size: 22px;
+      font-weight: bold;
+      margin: 30px 0 15px 0;
+      color: #2c5282;
+    }
+    
+    .detail-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    
+    .detail-table th {
+      background-color: #4a7ba7;
+      color: white;
+      padding: 10px 8px;
+      text-align: center;
+      border: 1px solid #3a6b97;
+      font-size: 15px;
+    }
+    
+    .detail-table td {
+      border: 1px solid #ddd;
+      padding: 12px 10px;
+      vertical-align: top;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    .detail-table .goal-col {
+      font-weight: bold;
+      color: #2c5282;
+      text-align: center;
+      width: 180px;
+      background-color: #f9f9f9;
+      vertical-align: middle;
+    }
+    
+    .detail-table .desc-col {
+      background-color: #fafafa;
+    }
+
+    /* 空的 desc-col 顯示深灰色背景 */
+    .desc-col:empty,
+    .desc-col.empty-cell {
+      background-color: #e8e8e8;
+    }
+
+    .detail-table .goal-code {
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+
+    .detail-table .goal-desc {
+      font-weight: normal;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    .indicator-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .indicator-code {
+      font-weight: bold;
+      color: #2c5282;
+    }
+    
+    .indicator-desc {
+      color: #444;
+      line-height: 1.6;
+    }
+    
+    .age-header {
+      background-color: #5a8bb7 !important;
+    }
+    
+    .goal-group {
+      background-color: #f0f0f0;
+    }
+
+    .status-message {
+      text-align: center;
+      font-size: 18px;
+      color: #555;
+      padding: 40px 0;
+    }
+
+    .status-error {
+      color: #c53030;
+    }
+
+    .goal-group-last {
+      border-bottom: 3px solid #cbd5e0 !important;
+    }
+
+    /* 箭頭指標樣式 */
+    .detail-table .desc-col.arrow-cell {
+      padding: 0;
+      vertical-align: middle;
+      position: relative;
+    }
+
+    .arrow-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      width: 80%;
+      height: 100%;
+      padding: 12px 10px;
+    }
+
+    .arrow-indicator::before {
+      content: '';
+      flex: 1;
+      height: 3px;
+      background: linear-gradient(to right, #02a568 0%, #03c87e 100%);
+      margin-right: 0;
+    }
+
+    .arrow-indicator::after {
+      content: '▶';
+      color: #02a568;
+      font-size: 16px;
+      font-weight: bold;
+      line-height: 1;
+      margin-left: -2px;
+    }
+
+    /* 複製按鈕樣式 */
+    .desc-col {
+      position: relative;
+    }
+
+    .copy-button {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background-color: #4a7ba7;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 6px;
+      width: 28px;
+      height: 28px;
+      font-size: 14px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s, background-color 0.2s;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .detail-table td:hover .copy-button {
+      opacity: 1;
+    }
+
+    .copy-button:hover {
+      background-color: #3a6b97;
+    }
+
+    .copy-button:active {
+      background-color: #2c5282;
+    }
+
+    /* Toast 提示樣式 */
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #48bb78;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 1002; /* 高於剪貼簿的 1001 */
+      animation: slideIn 0.3s ease-out, slideOut 0.3s ease-in 2.7s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+    }
+
+    /* 底部工具列樣式 - 玻璃質感 */
+    .floating-toolbar {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 24px;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      z-index: 999;
+      transition: all 0.3s ease;
+    }
+
+    .floating-toolbar:hover {
+      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    /* 導航選單 */
+    .nav-select {
+      padding: 8px 16px;
+      border: 1px solid rgba(141, 178, 85, 0.3);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #333;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.2s;
+      min-width: 200px;
+    }
+
+    .nav-select:hover {
+      border-color: #8db255;
+      background: white;
+    }
+
+    .nav-select:focus {
+      border-color: #8db255;
+      box-shadow: 0 0 0 3px rgba(141, 178, 85, 0.1);
+    }
+
+    /* 剪貼簿按鈕 */
+    .clipboard-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: linear-gradient(135deg, #02a568 0%, #03c078 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(2, 165, 104, 0.2);
+    }
+
+    .clipboard-btn:hover {
+      background: linear-gradient(135deg, #019456 0%, #02a568 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(2, 165, 104, 0.3);
+    }
+
+    .clipboard-btn:active {
+      transform: translateY(0);
+    }
+
+    .clipboard-btn .badge {
+      background: rgba(255, 255, 255, 0.3);
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    .clipboard-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: white;
+    }
+
+    /* 剪貼簿 Modal - 從按鈕位置往上浮出 */
+    .clipboard-modal {
+      display: none;
+      position: fixed;
+      z-index: 1001;
+    }
+
+    .clipboard-modal.show {
+      display: block;
+    }
+
+    .clipboard-content {
+      position: fixed;
+      /* 位置將由 JavaScript 動態設置 */
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      width: 500px;
+      max-width: calc(100vw - 40px);
+      max-height: 60vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      animation: slideUpFromButton 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transform: translate(-50%, -100%); /* 以中心點為基準，向上偏移 */
+      margin-top: -20px; /* 距離按鈕的間距 */
+    }
+
+    @keyframes slideUpFromButton {
+      from {
+        transform: translate(-50%, calc(-100% + 20px)) scale(0.95);
+        opacity: 0;
+      }
+      to {
+        transform: translate(-50%, -100%) scale(1);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideDownToButton {
+      from {
+        transform: translate(-50%, -100%) scale(1);
+        opacity: 1;
+      }
+      to {
+        transform: translate(-50%, calc(-100% + 20px)) scale(0.95);
+        opacity: 0;
+      }
+    }
+
+    .clipboard-modal.closing .clipboard-content {
+      animation: slideDownToButton 0.2s cubic-bezier(0.32, 0, 0.67, 0) forwards;
+    }
+
+    .clipboard-header {
+      display: none; /* 隱藏標題區域 */
+    }
+
+    .clipboard-list {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      margin-bottom: 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+    }
+    
+    .clipboard-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    
+    .clipboard-table thead {
+      display: none; /* 隐藏表头 */
+    }
+    
+    .clipboard-table th {
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 600;
+      color: #495057;
+      border-bottom: 2px solid #dee2e6;
+      white-space: nowrap;
+    }
+    
+    .clipboard-table th:first-child {
+      width: 40px;
+      text-align: center;
+    }
+    
+    .clipboard-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #e9ecef;
+      color: #212529;
+      line-height: 1.5;
+      word-wrap: break-word;
+      word-break: break-word;
+    }
+    
+    .clipboard-table td:first-child {
+      width: 40px;
+      text-align: center;
+      color: #6c757d;
+      font-weight: 500;
+      background: #f8f9fa;
+    }
+    
+    .clipboard-table tbody tr {
+      transition: background-color 0.15s ease;
+      cursor: pointer;
+    }
+    
+    .clipboard-table tbody tr:hover {
+      background-color: #f1f9f5;
+    }
+    
+    .clipboard-table tbody tr:active {
+      background-color: #e6f4ed;
+    }
+    
+    .clipboard-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .clipboard-empty {
+      text-align: center;
+      padding: 40px;
+      color: #a0aec0;
+      font-size: 16px;
+    }
+
+    .clipboard-empty-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .clipboard-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .clipboard-action-btn {
+      flex: 1;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .copy-all-btn {
+      background: linear-gradient(135deg, #02a568 0%, #03c078 100%);
+      color: white;
+    }
+
+    .copy-all-btn:hover {
+      background: linear-gradient(135deg, #019456 0%, #02a568 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(2, 165, 104, 0.3);
+    }
+
+    .clear-btn {
+      background: #e2e8f0;
+      color: #4a5568;
+    }
+
+    .clear-btn:hover {
+      background: #cbd5e0;
+    }
+
+    .clipboard-action-btn:active {
+      transform: translateY(0);
+    }
+
+    .clipboard-action-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* 可點擊的課程目標樣式 */
+    .clickable-goal {
+      transition: all 0.2s ease;
+      border-radius: 4px;
+      padding: 2px 4px;
+      margin: -2px -4px;
+    }
+
+    .clickable-goal:hover {
+      background-color: rgba(59, 130, 246, 0.1);
+      transform: scale(1.02);
+    }
+
+    .clickable-goal:active {
+      background-color: rgba(59, 130, 246, 0.2);
+      transform: scale(0.98);
+    }
+
+    /* 高亮動畫 */
+    .highlight-goal {
+      animation: highlightPulse 2s ease-out;
+    }
+
+    @keyframes highlightPulse {
+      0% {
+        background-color: rgba(59, 130, 246, 0.3);
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+      }
+      50% {
+        background-color: rgba(59, 130, 246, 0.2);
+        box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+      }
+      100% {
+        background-color: transparent;
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+      }
+    }
+  </style>
 </head>
 <body>
+  <main id="app">
+    <div class="status-message">資料載入中</div>
+  </main>
 
-    
-    <!-- 左側縮圖列表 -->
-    <div class="sidebar" id="sidebar">
-        <!-- 縮圖會動態生成 -->
-    </div>
+  <!-- 底部悬浮工具列 -->
+  <div class="floating-toolbar">
+    <select class="nav-select" id="domainNav">
+      <option value="">選擇領域...</option>
+    </select>
+    <button class="clipboard-btn" id="clipboardBtn">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 16H5V5h2v3h10V5h2v14z"/>
+      </svg>
+      <span class="badge" id="clipboardCount">0</span>
+    </button>
+  </div>
 
-    <!-- 圖片載入進度指示器 -->
-    <div class="image-loading-overlay" id="imageLoadingOverlay">
-        <div class="loading-content">
-            <div class="loading-title">正在載入圖片...</div>
-            <div class="progress-container">
-                <div class="progress-bar" id="progressBar"></div>
-            </div>
-            <div class="progress-text" id="progressText">0 / 0</div>
-            <div class="loading-subtitle">首次載入會將所有圖片快取到瀏覽器，<br>之後瀏覽會更加流暢</div>
+  <!-- 剪貼簿 Modal -->
+  <div class="clipboard-modal" id="clipboardModal">
+    <div class="clipboard-content">
+      <div class="clipboard-list" id="clipboardList">
+        <div class="clipboard-empty">
+          <div class="clipboard-empty-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width: 48px; height: 48px; fill: #cbd5e0;">
+              <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 16H5V5h2v3h10V5h2v14z"/>
+            </svg>
+          </div>
+          <div>尚未複製任何指標</div>
         </div>
-    </div>
-
-    <!-- 主要顯示區域 -->
-    <div class="main-display">
-
-
-        <!-- 學習指標工作列 -->
-        <div class="indicator-toolbar">
-            <div class="indicator-nav">
-                <button class="indicator-btn" onclick="jumpToIndicator(0)" data-indicator="0" title="身體動作與健康 (P.4)">
-                    <span class="indicator-icon">🏃</span>
-                    <span>身體動作與健康</span>
-                    <span class="page-number">P.4</span>
-                </button>
-                <button class="indicator-btn" onclick="jumpToIndicator(1)" data-indicator="1" title="認知 (P.9)">
-                    <span class="indicator-icon">🧠</span>
-                    <span>認知</span>
-                    <span class="page-number">P.9</span>
-                </button>
-                <button class="indicator-btn" onclick="jumpToIndicator(2)" data-indicator="2" title="語文 (P.15)">
-                    <span class="indicator-icon">📝</span>
-                    <span>語文</span>
-                    <span class="page-number">P.15</span>
-                </button>
-                <button class="indicator-btn" onclick="jumpToIndicator(3)" data-indicator="3" title="社會 (P.22)">
-                    <span class="indicator-icon">👥</span>
-                    <span>社會</span>
-                    <span class="page-number">P.22</span>
-                </button>
-                <button class="indicator-btn" onclick="jumpToIndicator(4)" data-indicator="4" title="情緒 (P.29)">
-                    <span class="indicator-icon">❤️</span>
-                    <span>情緒</span>
-                    <span class="page-number">P.29</span>
-                </button>
-                <button class="indicator-btn" onclick="jumpToIndicator(5)" data-indicator="5" title="美感 (P.34)">
-                    <span class="indicator-icon">🎨</span>
-                    <span>美感</span>
-                    <span class="page-number">P.34</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- 圖片容器 -->
-        <div class="image-container" id="imageContainer">
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-            </div>
-            <div class="images-wrapper" id="imagesWrapper">
-                <!-- 圖片會動態生成 -->
-            </div>
-        </div>
-
-        <!-- 底部狀態列 -->
-        <div class="status-bar">
-            <span id="imageInfo">第 1 張，共 0 張</span>
-
-            </div>
-    </div>
-
-    <!-- 手機版懸浮toolbar -->
-    <div class="mobile-floating-toolbar" id="mobileFloatingToolbar" style="display: none;">
-        <button class="mobile-category-button" id="mobileCategoryButton" onclick="toggleMobileCategoryMenu()">
-            <span class="category-icon" id="currentCategoryIcon">🏃</span>
-            <span class="category-name" id="currentCategoryName">身體動作與健康</span>
-            <span class="dropdown-arrow">▲</span>
+      </div>
+      <div class="clipboard-actions">
+        <button class="clipboard-action-btn copy-all-btn" id="copyAllBtn" disabled>
+          📄 全部複製
         </button>
+        <button class="clipboard-action-btn clear-btn" id="clearBtn" disabled>
+          🗑️ 清空
+        </button>
+      </div>
     </div>
+  </div>
 
-    <!-- 手機版分類選單 -->
-    <div class="mobile-category-menu" id="mobileCategoryMenu">
-        <div class="mobile-menu-item" onclick="selectMobileCategory(0)">
-            <span class="mobile-menu-icon">🏃</span>
-            <span class="mobile-menu-text">身體動作與健康</span>
-            <span class="mobile-menu-page">P.4</span>
-        </div>
-        <div class="mobile-menu-item" onclick="selectMobileCategory(1)">
-            <span class="mobile-menu-icon">🧠</span>
-            <span class="mobile-menu-text">認知</span>
-            <span class="mobile-menu-page">P.9</span>
-        </div>
-        <div class="mobile-menu-item" onclick="selectMobileCategory(2)">
-            <span class="mobile-menu-icon">📝</span>
-            <span class="mobile-menu-text">語文</span>
-            <span class="mobile-menu-page">P.15</span>
-        </div>
-        <div class="mobile-menu-item" onclick="selectMobileCategory(3)">
-            <span class="mobile-menu-icon">👥</span>
-            <span class="mobile-menu-text">社會</span>
-            <span class="mobile-menu-page">P.22</span>
-        </div>
-        <div class="mobile-menu-item" onclick="selectMobileCategory(4)">
-            <span class="mobile-menu-icon">❤️</span>
-            <span class="mobile-menu-text">情緒</span>
-            <span class="mobile-menu-page">P.29</span>
-        </div>
-        <div class="mobile-menu-item" onclick="selectMobileCategory(5)">
-            <span class="mobile-menu-icon">🎨</span>
-            <span class="mobile-menu-text">美感</span>
-            <span class="mobile-menu-page">P.34</span>
-        </div>
-    </div>
+  <script>
+    (function () {
+      const DATA_URL = 'data/learning_indicators.json';
+      const DETAIL_TITLE_TEXT = '各年齡層學習指標';
+      const app = document.getElementById('app');
+      
+      // 剪貼簿歷史記錄
+      let clipboardHistory = [];
+      
+      // 領域區塊參考
+      let domainSections = [];
 
-    <script>
-        // 配置
-        let images = [];
-        let currentIndex = 0;
+      init();
 
-        // 學習指標配置
-        const indicators = [
-            { name: '身體動作與健康', page: 4, icon: '🏃' },
-            { name: '認知', page: 9, icon: '🧠' },
-            { name: '語文', page: 15, icon: '📝' },
-            { name: '社會', page: 22, icon: '👥' },
-            { name: '情緒', page: 29, icon: '❤️' },
-            { name: '美感', page: 34, icon: '🎨' }
-        ];
+      async function init() {
+        try {
+          const data = await fetchData();
+          clearApp();
+          renderDomains(Array.isArray(data.domains) ? data.domains : []);
+        } catch (error) {
+          showStatus(`資料載入失敗：${error.message}`, true);
+        }
+      }
 
-        // 動態檢測圖片文件
-        async function detectImages() {
-            const detectedImages = [];
-            const maxImages = 100; // 設定最大檢測數量，避免無限循環
-            
-            // 先檢測png格式的圖片（從0開始）
-            for (let i = 0; i < maxImages; i++) {
-                try {
-                    const imagePath = `img/${i}.png`;
-                    const exists = await checkImageExists(imagePath);
-                    if (exists) {
-                        detectedImages.push({
-                            id: i,
-                            filename: `${i}.png`,
-                            path: imagePath
-                        });
-                    } else if (detectedImages.length > 0 && i - detectedImages[detectedImages.length - 1].id > 5) {
-                        // 如果連續5個編號都不存在，就停止檢測
-                        break;
-                    }
-                } catch (error) {
-                    console.log(`檢測圖片 ${i}.png 時發生錯誤:`, error);
-                }
-            }
-            
-            return detectedImages;
+      function clearApp() {
+        app.innerHTML = '';
+      }
+
+      function showStatus(message, isError = false) {
+        clearApp();
+        const status = document.createElement('div');
+        status.className = 'status-message' + (isError ? ' status-error' : '');
+        status.textContent = message;
+        app.appendChild(status);
+      }
+
+      async function fetchData() {
+        const response = await fetch(DATA_URL, { cache: 'no-store' });
+        if (!response.ok) {
+          throw new Error(`${response.status} ${response.statusText}`);
+        }
+        return response.json();
+      }
+
+      function renderDomains(domains) {
+        if (!domains.length) {
+          showStatus('尚未提供學習指標資料。', true);
+          return;
         }
 
-        // 檢查圖片是否存在
-        function checkImageExists(src) {
-            return new Promise((resolve) => {
-                const img = new Image();
-                img.onload = () => resolve(true);
-                img.onerror = () => resolve(false);
-                img.src = src;
-                // 設定超時時間
-                setTimeout(() => resolve(false), 3000);
-            });
+        domainSections = []; // 清空
+        domains.forEach((domain) => {
+          const domainElement = renderDomain(domain);
+          app.appendChild(domainElement);
+          domainSections.push({
+            name: domain.title || domain.name || '未命名領域',
+            element: domainElement
+          });
+        });
+        
+        // 初始化工具列
+        initToolbar();
+        
+        // 初始化时检测当前位置
+        updateCurrentDomain();
+      }
+
+      function renderDomain(domain) {
+        const section = document.createElement('section');
+        section.className = 'domain-section';
+
+        const title = document.createElement('div');
+        title.className = 'domain-title';
+        title.textContent = domain.title || '';
+        section.appendChild(title);
+
+        const summary = domain.summary || null;
+        const goalDescriptions = buildGoalDescriptionMap(summary);
+
+        if (summary) {
+          section.appendChild(renderSummaryTable(summary));
         }
 
-        // 圖片優化和預載入功能
-        const imageCache = new Map();
-        const loadingQueue = [];
-        let isPreloading = false;
+        const detailTitle = document.createElement('div');
+        detailTitle.className = 'detail-title';
+        detailTitle.textContent = DETAIL_TITLE_TEXT;
+        section.append(detailTitle);
 
-        // 創建優化的圖片載入器（支援 Service Worker 快取）
-        function createOptimizedImage(imagePath, fallbackPath = null) {
-            return new Promise((resolve, reject) => {
-                // 檢查記憶體快取
-                if (imageCache.has(imagePath)) {
-                    resolve(imageCache.get(imagePath));
-                    return;
-                }
+        section.appendChild(renderDetailTable(domain.details || {}, goalDescriptions));
 
-                const img = new Image();
-                
-                // 設定快取策略
-                img.crossOrigin = 'anonymous'; // 支援跨域快取
-                
-                // 添加載入超時
-                const timeout = setTimeout(() => {
-                    img.onload = img.onerror = null;
-                    if (fallbackPath) {
-                        createOptimizedImage(fallbackPath).then(resolve).catch(reject);
-                    } else {
-                        reject(new Error(`圖片載入超時: ${imagePath}`));
-                    }
-                }, 10000); // 延長到10秒，考慮到一次載入所有圖片
+        return section;
+      }
 
-                img.onload = () => {
-                    clearTimeout(timeout);
-                    // 只在記憶體快取中存儲路徑，避免重複存儲二進制數據
-                    imageCache.set(imagePath, imagePath);
-                    resolve(imagePath);
-                };
+      function renderSummaryTable(summary) {
+        const table = document.createElement('table');
+        table.className = 'summary-table';
 
-                img.onerror = () => {
-                    clearTimeout(timeout);
-                    console.warn(`圖片載入失敗: ${imagePath}`);
-                    if (fallbackPath) {
-                        createOptimizedImage(fallbackPath).then(resolve).catch(reject);
-                    } else {
-                        reject(new Error(`圖片載入失敗: ${imagePath}`));
-                    }
-                };
+        const headers = Array.isArray(summary.headers) ? summary.headers : [];
+        const rows = Array.isArray(summary.rows) ? summary.rows : [];
 
-                // 使用原始路徑，讓 Service Worker 處理快取
-                img.src = imagePath;
-            });
-        }
-
-        // 一次性載入所有圖片並顯示進度（避免重複載入）
-        async function preloadAllImagesWithProgress() {
-            if (isPreloading || images.length === 0) return;
-            isPreloading = true;
-
-            // 顯示進度條
-            showLoadingProgress();
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        headers.forEach((header, index) => {
+          const th = document.createElement('th');
+          
+          // 第一個表頭單元格使用對角線樣式
+          if (index === 0) {
+            th.className = 'diagonal-header';
+            // 處理表頭文字，預期格式為 "學習面向\n領域能力" 或包含 <br>
+            const headerText = header || '';
+            // 分隔換行符或 <br> 標籤
+            const lines = headerText
+              .split(/\n|<br\s*\/?>/i)
+              .map(line => line.trim())
+              .filter(line => line);
             
-            // 檢查哪些圖片還沒快取
-            const uncachedImages = [];
-            let totalImages = images.length;
-            let alreadyCachedCount = 0;
-
-            if ('caches' in window) {
-                try {
-                    const cache = await caches.open('learning-indicators-images-v1');
-                    for (const image of images) {
-                        const fullUrl = new URL(image.path, window.location.origin).href;
-                        const cached = await cache.match(fullUrl);
-                        if (cached) {
-                            alreadyCachedCount++;
-                        } else {
-                            uncachedImages.push(image);
-                        }
-                    }
-                } catch (error) {
-                    console.warn('檢查快取狀態失敗，載入所有圖片:', error);
-                    uncachedImages.push(...images);
-                }
+            if (lines.length >= 2) {
+              // 有兩行文字，使用對角線佈局
+              // 第一行放右上角（學習面向）
+              const topRight = document.createElement('span');
+              topRight.className = 'top-right';
+              topRight.textContent = lines[0];
+              
+              // 第二行放左下角（領域能力）
+              const bottomLeft = document.createElement('span');
+              bottomLeft.className = 'bottom-left';
+              bottomLeft.textContent = lines[1];
+              
+              th.appendChild(topRight);
+              th.appendChild(bottomLeft);
             } else {
-                uncachedImages.push(...images);
+              // 只有一行或沒有文字，直接顯示
+              th.innerHTML = headerText;
             }
+          } else {
+            th.innerHTML = header || '';
+          }
+          
+          headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
 
-            console.log(`快取狀態：${alreadyCachedCount}/${totalImages} 已快取，需載入 ${uncachedImages.length} 張`);
-            
-            let loadedCount = alreadyCachedCount; // 從已快取數量開始計數
-
-            if (uncachedImages.length === 0) {
-                // 全部已快取，直接完成
-                updateLoadingProgress(totalImages, totalImages);
-                hideLoadingProgress();
-                isPreloading = false;
-                console.log('所有圖片已在快取中，無需重新載入');
-                return;
+        const tbody = document.createElement('tbody');
+        
+        // 計算每個能力需要的 rowspan
+        const abilityCounts = [];
+        let currentAbility = null;
+        let currentCount = 0;
+        
+        rows.forEach((row, index) => {
+          const ability = row.ability || '';
+          
+          if (ability && ability !== currentAbility) {
+            // 新的能力開始
+            if (currentAbility !== null) {
+              abilityCounts.push({ ability: currentAbility, count: currentCount, startIndex: index - currentCount });
             }
-
-            // 分批載入未快取的圖片
-            const batchSize = 5;
-            const batches = [];
-            
-            for (let i = 0; i < uncachedImages.length; i += batchSize) {
-                batches.push(uncachedImages.slice(i, i + batchSize));
-            }
-
-            for (const batch of batches) {
-                const batchPromises = batch.map(async (image) => {
-                    try {
-                        await createOptimizedImage(image.path);
-                        loadedCount++;
-                        updateLoadingProgress(loadedCount, totalImages);
-                        return { success: true, path: image.path };
-                    } catch (error) {
-                        console.warn(`圖片載入失敗: ${image.path}`, error);
-                        loadedCount++;
-                        updateLoadingProgress(loadedCount, totalImages);
-                        return { success: false, path: image.path, error };
-                    }
-                });
-
-                // 等待當前批次完成再開始下一批次
-                await Promise.allSettled(batchPromises);
-                
-                // 小延遲避免阻塞UI
-                await new Promise(resolve => setTimeout(resolve, 50));
-            }
-
-            // 隱藏進度條
-            hideLoadingProgress();
-            isPreloading = false;
-
-            console.log(`圖片載入完成: ${loadedCount}/${totalImages} (新載入 ${uncachedImages.length} 張)`);
-        }
-
-        // 智能預載入（現在用於其他用途，保留備用）
-        function preloadNearbyImages(currentIndex, radius = 2) {
-            // 由於已經全部載入，這個函數現在主要用於觸發快取檢查
-            if (currentIndex >= 0 && currentIndex < images.length) {
-                const image = images[currentIndex];
-                if (!imageCache.has(image.path)) {
-                    createOptimizedImage(image.path).catch(console.warn);
-                }
-            }
-        }
-
-        // 進度指示器控制函數
-        function showLoadingProgress() {
-            const overlay = document.getElementById('imageLoadingOverlay');
-            overlay.classList.add('active');
-        }
-
-        function updateLoadingProgress(loaded, total) {
-            const progressBar = document.getElementById('progressBar');
-            const progressText = document.getElementById('progressText');
-            
-            const percentage = (loaded / total) * 100;
-            progressBar.style.width = `${percentage}%`;
-            progressText.textContent = `${loaded} / ${total}`;
-        }
-
-        function hideLoadingProgress() {
-            const overlay = document.getElementById('imageLoadingOverlay');
-            overlay.classList.remove('active');
-        }
-
-        // 初始化
-        async function init() {
-            try {
-                // 顯示載入中狀態
-                document.getElementById('loading').classList.add('active');
-                
-                // 動態檢測圖片
-                images = await detectImages();
-                
-                if (images.length === 0) {
-                    // 如果沒有檢測到圖片，使用預設配置
-                    console.log('未檢測到圖片，使用預設配置');
-                    const imageCount = 39; // 預設圖片總數
-                    for (let i = 0; i < imageCount; i++) {
-                images.push({
-                    id: i,
-                            filename: `${i}.png`,
-                            path: `img/${i}.png`
-                });
-            }
-                }
-
-                console.log(`檢測到 ${images.length} 張圖片`);
-                
-                // 隱藏載入中狀態
-                document.getElementById('loading').classList.remove('active');
-
-            renderSidebar();
-                await renderImages(); // 等待圖片載入完成
-                if (images.length > 0) {
-                    currentIndex = 0;
-                    updateUI();
-                    // 延遲一點時間確保DOM渲染完成後再設置滾動監聽
-                    setTimeout(setupScrollControls, 100);
-                } else {
-                    setupScrollControls();
-                }
-
-                
-            } catch (error) {
-                console.error('初始化失敗:', error);
-                document.getElementById('loading').classList.remove('active');
-                hideLoadingProgress();
-                document.getElementById('errorPlaceholder').style.display = 'flex';
-                document.getElementById('errorPlaceholder').textContent = '初始化失敗，請重新整理頁面';
-            }
-        }
-
-        // 渲染側邊欄縮圖
-        function renderSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            sidebar.innerHTML = '';
-
-            images.forEach((image, index) => {
-                const item = document.createElement('div');
-                item.className = 'thumbnail-item';
-                item.onclick = () => {
-                    // 立即更新縮圖選中狀態
-                    updateThumbnailsActive(index);
-                    scrollToImage(index);
-                };
-
-                const img = document.createElement('img');
-                img.src = image.path;
-                img.alt = `圖片 ${image.id + 1}`;
-                
-                // 錯誤處理：使用佔位圖
-                img.onerror = () => {
-                    img.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120"><rect fill="%23e0e0e0" width="200" height="120"/><text x="50%" y="50%" font-family="Arial" font-size="14" fill="%23999" text-anchor="middle" dominant-baseline="middle">No Image</text></svg>`;
-                };
-
-                const number = document.createElement('div');
-                number.className = 'thumbnail-number';
-                number.textContent = image.id + 1;
-
-                item.appendChild(img);
-                item.appendChild(number);
-                sidebar.appendChild(item);
-            });
-        }
-
-        // 渲染所有圖片到垂直容器（智能快取版本）
-        async function renderImages() {
-            const wrapper = document.getElementById('imagesWrapper');
-            wrapper.innerHTML = '';
-
-            // 檢查是否已有快取，決定是否需要顯示進度條
-            const cachedCount = await checkCacheStatus();
-            const needsPreloading = cachedCount < images.length * 0.8; // 80%以上已快取就不顯示進度
-
-            if (needsPreloading) {
-                console.log(`需要載入圖片：已快取 ${cachedCount}/${images.length}`);
-                // 只有在真正需要時才顯示進度並載入
-                await preloadAllImagesWithProgress();
-            } else {
-                console.log(`大部分圖片已快取 (${cachedCount}/${images.length})，直接渲染`);
-            }
-
-            images.forEach((image, index) => {
-                const page = document.createElement('div');
-                page.className = 'image-page';
-                page.id = `image-page-${index}`;
-
-                const img = document.createElement('img');
-                
-                // 直接使用圖片路徑，讓 Service Worker 處理快取
-                img.src = image.path;
-                
-                // 標記為已載入（用於記憶體快取狀態追蹤）
-                img.onload = () => {
-                    imageCache.set(image.path, image.path);
-                };
-                
-                img.alt = `圖片 ${image.id + 1}`;
-
-                // 錯誤處理
-                img.onerror = () => {
-                    const errorDiv = document.createElement('div');
-                    errorDiv.className = 'error-placeholder';
-                    errorDiv.textContent = `圖片 ${image.id + 1} 載入失敗`;
-                    page.innerHTML = '';
-                    page.appendChild(errorDiv);
-                };
-
-                page.appendChild(img);
-                wrapper.appendChild(page);
-            });
-        }
-
-        // 滾動到指定圖片
-        function scrollToImage(index) {
-            if (index < 0 || index >= images.length) return;
-
-            // 立即更新當前索引和UI狀態
-            currentIndex = index;
-            updateUI();
-
-            const targetPage = document.getElementById(`image-page-${index}`);
-            const container = document.getElementById('imageContainer');
-            
-            if (targetPage && container) {
-                // 手機版使用更精確的滾動定位
-                if (window.innerWidth <= 768) {
-                    // 計算目標圖片的精確位置
-                    const containerRect = container.getBoundingClientRect();
-                    const targetRect = targetPage.getBoundingClientRect();
-                    const currentScrollTop = container.scrollTop;
-                    
-                    // 針對超緊密間距(10px)的精確滾動定位
-                    let targetScrollTop;
-                    
-                    // 檢測實際的padding值來調整偏移
-                    const actualPadding = window.innerWidth <= 480 ? 10 : 15; // 小螢幕10px，一般手機15px
-                    
-                    // 精確計算滾動位置，確保圖片頂部對齊容器頂部
-                    targetScrollTop = currentScrollTop + (targetRect.top - containerRect.top) - (actualPadding - 5);
-                    
-                    // 特別處理最後一張圖片，確保不會滾動過頭
-                    if (index === images.length - 1) {
-                        const maxScrollTop = container.scrollHeight - container.clientHeight;
-                        // 對於最後一張圖片，考慮底部的150px空間
-                        targetScrollTop = Math.min(targetScrollTop, maxScrollTop - 30); // 留足夠緩衝
-                    }
-                    
-                    // 確保不會滾動到負值
-                    targetScrollTop = Math.max(0, targetScrollTop);
-                    
-                    container.scrollTo({
-                        top: targetScrollTop,
-                        behavior: 'smooth'
-                    });
-                } else {
-                    // 桌面版保持原有行為
-                    targetPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            }
-
-            // 觸發預載入附近圖片
-            preloadNearbyImages(index);
-        }
-
-        // 基於滾動位置更新當前圖片索引
-        function updateCurrentIndex() {
-            const container = document.getElementById('imageContainer');
-            const pages = document.querySelectorAll('.image-page');
-            
-            if (pages.length === 0) return;
-            
-            let currentPageIndex = 0;
-            const containerRect = container.getBoundingClientRect();
-            
-            // 手機版使用更精確的檢測邏輯，針對超緊密間距(10px)優化
-            if (window.innerWidth <= 768) {
-                // 對於超緊密間距，使用容器頂部作為主要參考點
-                const referenceY = containerRect.top + 20; // 更靠近頂部的檢測點
-                let bestMatch = { index: 0, score: -Infinity };
-                
-                pages.forEach((page, index) => {
-                    const pageRect = page.getBoundingClientRect();
-                    
-                    // 計算圖片頂部相對於參考點的位置
-                    const topDistance = pageRect.top - referenceY;
-                    const bottomDistance = pageRect.bottom - referenceY;
-                    
-                    // 評分系統：最接近參考點且圖片可見的獲得最高分
-                    let score = 0;
-                    
-                    if (topDistance <= 0 && bottomDistance >= 0) {
-                        // 圖片跨越參考點，獲得最高基礎分
-                        score = 1000;
-                        // 減去距離頂部的距離（越接近頂部分數越高）
-                        score -= Math.abs(topDistance);
-                    } else if (bottomDistance > 0) {
-                        // 圖片在參考點下方，分數遞減
-                        score = 500 - Math.abs(topDistance);
-                    } else {
-                        // 圖片在參考點上方，較低分數
-                        score = 100 - Math.abs(bottomDistance);
-                    }
-                    
-                    if (score > bestMatch.score) {
-                        bestMatch = { index, score };
-                    }
-                });
-                
-                currentPageIndex = bestMatch.index;
-            } else {
-                // 桌面版保持原有的中心點檢測
-                const centerY = containerRect.top + containerRect.height / 2;
-                
-                pages.forEach((page, index) => {
-                    const pageRect = page.getBoundingClientRect();
-                    if (pageRect.top <= centerY && pageRect.bottom >= centerY) {
-                        currentPageIndex = index;
-                    }
-                });
-            }
-
-            if (currentPageIndex !== currentIndex) {
-                currentIndex = currentPageIndex;
-                // 只更新狀態列，不強制更新按鈕狀態（避免覆蓋點擊反饋）
-                const image = images[currentIndex];
-                document.getElementById('imageInfo').textContent = `第 ${image.id + 1} 張，共 ${images.length} 張`;
-                
-                // 輕柔地更新UI狀態（使用正常邏輯，不強制覆蓋）
-                updateThumbnailsActive(currentIndex);
-                updateIndicatorButtons();
-            }
-        }
-
-            // 更新縮圖選中狀態
-        function updateThumbnailsActive(activeIndex) {
-            const thumbnails = document.querySelectorAll('.thumbnail-item');
-            thumbnails.forEach((thumb, i) => {
-                if (i === activeIndex) {
-                    thumb.classList.add('active');
-                    // 自動滾動到可見位置
-                    thumb.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                } else {
-                    thumb.classList.remove('active');
-                }
-            });
-        }
-
-        // 更新UI狀態
-        function updateUI() {
-            const image = images[currentIndex];
-            
-            // 更新狀態列
-            document.getElementById('imageInfo').textContent = `第 ${image.id + 1} 張，共 ${images.length} 張`;
-
-            // 更新縮圖選中狀態
-            updateThumbnailsActive(currentIndex);
-
-            // 更新指標按鈕狀態
-            updateIndicatorButtons();
-        }
-
-        // 導航功能（現在基於滾動）
-        function previousImage() {
-            if (currentIndex > 0) {
-                scrollToImage(currentIndex - 1);
-            }
-        }
-
-        function nextImage() {
-            if (currentIndex < images.length - 1) {
-                scrollToImage(currentIndex + 1);
-            }
-        }
-
-        // 跳轉到指標
-        function jumpToIndicator(indicatorIndex) {
-            if (indicatorIndex >= 0 && indicatorIndex < indicators.length) {
-                const targetPage = indicators[indicatorIndex].page;
-                // 頁碼轉換為圖片索引（因為有第0頁，所以頁碼直接對應圖片編號）
-                const targetImageIndex = targetPage; // P.4 對應圖片 4.png
-                
-                if (targetImageIndex >= 0 && targetImageIndex < images.length) {
-                    // 立即更新indicator按鈕狀態
-                    updateIndicatorButtons(indicatorIndex);
-                    scrollToImage(targetImageIndex);
-                } else {
-                    console.warn(`指標 ${indicators[indicatorIndex].name} 對應的圖片不存在`);
-                }
-            }
-        }
-
-        // 更新指標按鈕狀態
-        function updateIndicatorButtons(forceActiveIndex = null) {
-            const indicatorButtons = document.querySelectorAll('.indicator-btn');
-            
-            if (forceActiveIndex !== null) {
-                // 如果指定了強制激活的索引，直接設置該按鈕為active
-                indicatorButtons.forEach((btn, index) => {
-                    if (index === forceActiveIndex) {
-                        btn.classList.add('active');
-                    } else {
-                        btn.classList.remove('active');
-                    }
-                });
-                // 同時更新手機版分類顯示
-                updateMobileCategoryDisplay(forceActiveIndex);
-                return;
-            }
-            
-            // 正常的範圍檢查邏輯
-            const currentPage = currentIndex + 1; // 當前圖片對應的頁碼
-            
-            indicatorButtons.forEach((btn, index) => {
-                const indicator = indicators[index];
-                const isInIndicatorRange = currentPage >= indicator.page && 
-                    (index === indicators.length - 1 || currentPage < indicators[index + 1].page);
-                
-                if (isInIndicatorRange) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
-            });
-            
-            // 同時更新手機版分類顯示
-            updateMobileCategoryDisplay();
-        }
-
-
-
-        // 鍵盤控制（改為垂直導航）
-        document.addEventListener('keydown', (e) => {
-            switch(e.key) {
-                case 'ArrowUp':
-                case 'ArrowLeft':
-                    previousImage();
-                    break;
-                case 'ArrowDown':
-                case 'ArrowRight':
-                    nextImage();
-                    break;
-                case 'PageUp':
-                    previousImage();
-                    break;
-                case 'PageDown':
-                    nextImage();
-                    break;
-                case 'Home':
-                    scrollToImage(0);
-                    break;
-                case 'End':
-                    scrollToImage(images.length - 1);
-                    break;
-            }
+            currentAbility = ability;
+            currentCount = 1;
+          } else if (!ability && currentAbility) {
+            // 空能力，屬於上一個能力的延續
+            currentCount++;
+          } else if (ability) {
+            // 相同能力
+            currentCount++;
+          }
+          
+          // 最後一行
+          if (index === rows.length - 1 && currentAbility !== null) {
+            abilityCounts.push({ ability: currentAbility, count: currentCount, startIndex: index - currentCount + 1 });
+          }
         });
 
-        // 觸控滑動支援（優化版本）
-        let touchStartY = 0;
-        let touchEndY = 0;
-        let isScrolling = false;
-        let startTime = 0;
+        // 追蹤每個欄位被 rowspan 佔用的情況
+        // rowspanTracker[colIndex] = 剩餘要跳過的行數
+        const rowspanTracker = {};
 
-        function handleTouchStart(e) {
-            touchStartY = e.touches[0].clientY;
-            startTime = Date.now();
-            isScrolling = false;
-        }
+        rows.forEach((row, rowIndex) => {
+          const tr = document.createElement('tr');
 
-        function handleTouchMove(e) {
-            // 檢測是否在滾動
-            const currentY = e.touches[0].clientY;
-            const deltaY = Math.abs(currentY - touchStartY);
-            
-            if (deltaY > 10) {
-                isScrolling = true;
+          // 檢查這一行是否需要渲染能力單元格
+          const abilityInfo = abilityCounts.find(info => info.startIndex === rowIndex);
+          if (abilityInfo) {
+            const abilityTd = document.createElement('td');
+            abilityTd.className = 'ability-cell';
+            abilityTd.textContent = abilityInfo.ability;
+            if (abilityInfo.count > 1) {
+              abilityTd.setAttribute('rowspan', abilityInfo.count);
             }
-        }
+            tr.appendChild(abilityTd);
+          } else if (!row.ability) {
+            // 如果這行沒有能力且不是起始行，不添加能力單元格（被 rowspan 覆蓋）
+          } else if (row.ability) {
+            // 有能力但不是起始行，說明是新的能力組
+            const abilityTd = document.createElement('td');
+            abilityTd.className = 'ability-cell';
+            abilityTd.textContent = row.ability;
+            tr.appendChild(abilityTd);
+          }
 
-        function handleTouchEnd(e) {
-            if (isScrolling) return; // 如果正在滾動，不執行快速滑動
-            
-            touchEndY = e.changedTouches[0].clientY;
-            const duration = Date.now() - startTime;
-            
-            // 只有快速滑動才觸發頁面切換
-            if (duration < 300) {
-                handleSwipe();
-            }
-        }
-
-        function handleSwipe() {
-            const swipeThreshold = 30; // 降低閾值，讓快速滑動更靈敏
-            const swipeDistance = touchEndY - touchStartY;
-
-            if (Math.abs(swipeDistance) > swipeThreshold) {
-                if (swipeDistance > 0) {
-                    // 向下快速滑動 - 上一張
-                    previousImage();
-                } else {
-                    // 向上快速滑動 - 下一張
-                    nextImage();
-                }
-            }
-        }
-
-        // 添加滾動事件監聽器
-        function setupScrollControls() {
-            const imageContainer = document.getElementById('imageContainer');
-            
-            // 滾動事件監聽
-            let scrollTimeout;
-            let isUserScrolling = false;
-            let lastScrollTime = 0;
-            
-            imageContainer.addEventListener('scroll', () => {
-                isUserScrolling = true;
-                const now = Date.now();
-                
-                // 針對手機版緊密間距調整節流頻率
-                const throttleTime = window.innerWidth <= 768 ? 150 : 100; // 手機版降低頻率
-                const debounceTime = window.innerWidth <= 768 ? 200 : 150; // 手機版增加延遲
-                
-                // 節流控制
-                if (now - lastScrollTime < throttleTime) {
-                    clearTimeout(scrollTimeout);
-                    scrollTimeout = setTimeout(() => {
-                        updateCurrentIndex();
-                        isUserScrolling = false;
-                        lastScrollTime = Date.now();
-                    }, debounceTime);
-                    return;
-                }
-                
-                clearTimeout(scrollTimeout);
-                scrollTimeout = setTimeout(() => {
-                    updateCurrentIndex();
-                    isUserScrolling = false;
-                    lastScrollTime = Date.now();
-                }, debounceTime); // 根據設備調整延遲
-            }, { passive: true });
-
-            // 觸控事件監聽（優化的滑動體驗）
-            imageContainer.addEventListener('touchstart', handleTouchStart, { passive: true });
-            imageContainer.addEventListener('touchmove', handleTouchMove, { passive: true });
-            imageContainer.addEventListener('touchend', handleTouchEnd, { passive: true });
-        }
-
-
-
-        // 手機版分類選單功能
-        function toggleMobileCategoryMenu() {
-            const menu = document.getElementById('mobileCategoryMenu');
-            const button = document.getElementById('mobileCategoryButton');
-            
-            menu.classList.toggle('show');
-            button.classList.toggle('active');
-        }
-
-        function selectMobileCategory(indicatorIndex) {
-            // 關閉選單
-            const menu = document.getElementById('mobileCategoryMenu');
-            const button = document.getElementById('mobileCategoryButton');
-            menu.classList.remove('show');
-            button.classList.remove('active');
-            
-            // 更新當前分類顯示
-            updateMobileCategoryDisplay(indicatorIndex);
-            
-            // 跳轉到對應指標
-            jumpToIndicator(indicatorIndex);
-        }
-
-        function updateMobileCategoryDisplay(indicatorIndex = null) {
-            const iconElement = document.getElementById('currentCategoryIcon');
-            const nameElement = document.getElementById('currentCategoryName');
-            const menuItems = document.querySelectorAll('.mobile-menu-item');
-            
-            let activeIndicatorIndex = indicatorIndex;
-            
-            // 如果沒有指定索引，根據當前頁面自動判斷
-            if (activeIndicatorIndex === null) {
-                const currentPage = currentIndex + 1;
-                activeIndicatorIndex = 0; // 預設為第一個指標
-                
-                for (let i = 0; i < indicators.length; i++) {
-                    const indicator = indicators[i];
-                    const isInRange = currentPage >= indicator.page && 
-                        (i === indicators.length - 1 || currentPage < indicators[i + 1].page);
-                    
-                    if (isInRange) {
-                        activeIndicatorIndex = i;
-                    break;
-            }
-                }
+          // 計算實際需要渲染的欄位數（包括被 colspan 展開的）
+          let totalColumns = headers.length - 1; // 減去能力欄
+          let dataColIndex = 0; // JSON 中的欄位索引
+          let renderColIndex = 0; // 實際要渲染的欄位位置（考慮被 rowspan 佔用的）
+          
+          while (renderColIndex < totalColumns && dataColIndex < (Array.isArray(row.cells) ? row.cells.length : 0)) {
+            // 檢查這個欄位是否被上一行的 rowspan 佔用
+            if (rowspanTracker[renderColIndex] && rowspanTracker[renderColIndex] > 0) {
+              // 這個欄位被佔用，跳過渲染但要檢查 JSON 數據
+              // JSON 中對應位置應該是空陣列
+              rowspanTracker[renderColIndex]--;
+              renderColIndex++;
+              dataColIndex++; // 同時增加 dataColIndex，因為 JSON 中這個位置是空陣列
+              continue;
             }
             
-            // 更新顯示內容
-            if (activeIndicatorIndex >= 0 && activeIndicatorIndex < indicators.length) {
-                const indicator = indicators[activeIndicatorIndex];
-                iconElement.textContent = indicator.icon;
-                nameElement.textContent = indicator.name;
-                
-                // 更新選單項目的active狀態
-                menuItems.forEach((item, index) => {
-                    if (index === activeIndicatorIndex) {
-                        item.classList.add('active');
-                    } else {
-                        item.classList.remove('active');
-                    }
-                });
-            }
-        }
-
-        // 手機版控制功能
-        function setupMobileControls() {
-            const mainDisplay = document.getElementById('imageContainer');
-            const mobileToolbar = document.getElementById('mobileFloatingToolbar');
-            const categoryMenu = document.getElementById('mobileCategoryMenu');
-            const categoryButton = document.getElementById('mobileCategoryButton');
+            // 渲染這個欄位
+            const cellItems = Array.isArray(row.cells) && row.cells[dataColIndex] ? row.cells[dataColIndex] : [];
+            const td = renderSummaryCell(cellItems);
+            tr.appendChild(td);
             
-            // 檢查是否為手機版
-            function isMobile() {
-                return window.innerWidth <= 768;
+            // 檢查是否有 rowspan，如果有就記錄
+            if (cellItems[0] && cellItems[0].rowspan && cellItems[0].rowspan > 1) {
+              const rowspanValue = cellItems[0].rowspan;
+              // 記錄這個欄位在接下來的 (rowspan - 1) 行要被跳過
+              rowspanTracker[renderColIndex] = rowspanValue - 1;
             }
             
-            // 更新手機版顯示狀態
-            function updateMobileDisplay() {
-                if (isMobile()) {
-                    mobileToolbar.style.display = 'flex';
-                } else {
-                    mobileToolbar.style.display = 'none';
-                    // 桌面版時重置分類選單狀態
-                    categoryMenu.classList.remove('show');
-                    categoryButton.classList.remove('active');
-                }
-            }
-            
-            // 點擊主區域時隱藏分類選單
-            mainDisplay.addEventListener('click', () => {
-                if (isMobile() && categoryMenu.classList.contains('show')) {
-                    toggleMobileCategoryMenu();
-                }
-            });
-            
-            // 點擊其他區域關閉分類選單
-            document.addEventListener('click', (e) => {
-                if (isMobile() && !categoryButton.contains(e.target) && !categoryMenu.contains(e.target)) {
-                    if (categoryMenu.classList.contains('show')) {
-                        categoryMenu.classList.remove('show');
-                        categoryButton.classList.remove('active');
-                    }
-                }
-            });
-            
-            // 監聽窗口大小變化
-            window.addEventListener('resize', updateMobileDisplay);
-            
-            // 初始化顯示狀態
-            updateMobileDisplay();
-        }
-
-        // Service Worker 註冊和快取管理
-        let serviceWorkerRegistration = null;
-
-        async function registerServiceWorker() {
-            if ('serviceWorker' in navigator) {
-                try {
-                    // 改用相對路徑，適用於 GitHub Pages
-                    serviceWorkerRegistration = await navigator.serviceWorker.register('./sw.js', {
-                        scope: './' // 也設定相對的 scope
-                    });
-                    console.log('Service Worker 註冊成功:', serviceWorkerRegistration);
-                    
-                    // 監聽 SW 更新
-                    serviceWorkerRegistration.addEventListener('updatefound', () => {
-                        console.log('Service Worker 更新中...');
-                    });
-                    
-                    // 檢查是否立即可用
-                    if (serviceWorkerRegistration.active) {
-                        console.log('Service Worker 已啟用');
-                    } else if (serviceWorkerRegistration.installing) {
-                        console.log('Service Worker 正在安裝...');
-                    } else if (serviceWorkerRegistration.waiting) {
-                        console.log('Service Worker 等待啟用...');
-                    }
-                    
-                } catch (error) {
-                    console.error('Service Worker 註冊失敗:', error);
-                    // 如果 Service Worker 註冊失敗，應用仍可正常運作
-                    console.log('應用將在沒有快取優化的情況下運行');
-                }
+            // 如果這個單元格有 colspan，跳過後續被佔據的欄位
+            let colspanValue = 1;
+            if (cellItems[0] && cellItems[0].colspan && cellItems[0].colspan > 1) {
+              colspanValue = cellItems[0].colspan;
+              renderColIndex += colspanValue;
             } else {
-                console.log('瀏覽器不支援 Service Worker');
+              renderColIndex++;
             }
-        }
-
-        // 使用 Service Worker 快取圖片
-        async function cacheImagesWithServiceWorker() {
-            if (!serviceWorkerRegistration || !serviceWorkerRegistration.active) {
-                console.log('Service Worker 未就緒，使用一般快取');
-                return;
-            }
-
-            const imageUrls = images.map(img => new URL(img.path, window.location.origin).href);
             
-            try {
-                // 創建一個訊息通道與 SW 通信
-                const messageChannel = new MessageChannel();
-                
-                return new Promise((resolve, reject) => {
-                    messageChannel.port1.onmessage = (event) => {
-                        if (event.data.success) {
-                            console.log('Service Worker 快取完成');
-                            resolve();
-                        } else {
-                            console.error('Service Worker 快取失敗:', event.data.error);
-                            reject(event.data.error);
-                        }
-                    };
+            dataColIndex++;
+          }
 
-                    // 發送快取請求給 SW
-                    serviceWorkerRegistration.active.postMessage(
-                        {
-                            type: 'CACHE_IMAGES',
-                            urls: imageUrls
-                        },
-                        [messageChannel.port2]
-                    );
-                });
-            } catch (error) {
-                console.error('Service Worker 快取通信失敗:', error);
-            }
-        }
-
-        // 檢查快取狀態
-        async function checkCacheStatus() {
-            if ('caches' in window) {
-                try {
-                    const cache = await caches.open('learning-indicators-images-v1');
-                    const keys = await cache.keys();
-                    console.log(`快取中已有 ${keys.length} 個圖片文件`);
-                    return keys.length;
-                } catch (error) {
-                    console.error('檢查快取狀態失敗:', error);
-                    return 0;
-                }
-            }
-            return 0;
-        }
-
-        // 初始化
-        window.addEventListener('DOMContentLoaded', async () => {
-            // 首先註冊 Service Worker
-            await registerServiceWorker();
-            
-            // 檢查現有快取
-            const cachedCount = await checkCacheStatus();
-            console.log(`發現 ${cachedCount} 個已快取的圖片`);
-            
-            // 初始化應用
-            await init();
-            setupMobileControls();
-            
-            // 初始化手機版分類顯示
-            setTimeout(() => {
-                updateMobileCategoryDisplay();
-            }, 200);
-            
-            // 智能補充快取：只在需要時使用 Service Worker 補充
-            if (serviceWorkerRegistration) {
-                setTimeout(async () => {
-                    try {
-                        const currentCachedCount = await checkCacheStatus();
-                        if (currentCachedCount < images.length) {
-                            console.log(`Service Worker 補充快取中：${currentCachedCount}/${images.length}`);
-                            await cacheImagesWithServiceWorker();
-                            console.log('所有圖片已成功快取到瀏覽器');
-                        } else {
-                            console.log('所有圖片已完整快取，無需再次載入');
-                        }
-                    } catch (error) {
-                        console.warn('Service Worker 快取失敗，但應用仍可正常使用:', error);
-                    }
-                }, 1000);
-            }
+          tbody.appendChild(tr);
         });
-    </script>
+        table.appendChild(tbody);
+
+        return table;
+      }
+
+      function renderSummaryCell(cellItems) {
+        const td = document.createElement('td');
+
+        if (!Array.isArray(cellItems) || !cellItems.length) {
+          td.classList.add('empty-cell');
+          return td;
+        }
+
+        // 檢查第一個項目是否有 colspan，如果有就設置到 td 上
+        if (cellItems[0] && cellItems[0].colspan && cellItems[0].colspan > 1) {
+          td.setAttribute('colspan', cellItems[0].colspan);
+        }
+
+        // 檢查第一個項目是否有 rowspan，如果有就設置到 td 上
+        if (cellItems[0] && cellItems[0].rowspan && cellItems[0].rowspan > 1) {
+          td.setAttribute('rowspan', cellItems[0].rowspan);
+        }
+
+        cellItems.forEach((item) => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'summary-cell-item';
+
+          if (item.goal) {
+            const goalDiv = document.createElement('div');
+            goalDiv.className = 'goal-code';
+            goalDiv.textContent = item.goal;
+            wrapper.appendChild(goalDiv);
+            
+            // 添加可點擊樣式和點擊事件
+            wrapper.classList.add('clickable-goal');
+            wrapper.style.cursor = 'pointer';
+            wrapper.addEventListener('click', () => {
+              const targetElement = document.getElementById(`goal-${item.goal}`);
+              if (targetElement) {
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // 添加高亮效果
+                targetElement.classList.add('highlight-goal');
+                setTimeout(() => {
+                  targetElement.classList.remove('highlight-goal');
+                }, 2000);
+              }
+            });
+          }
+
+          if (item.description) {
+            const descDiv = document.createElement('div');
+            descDiv.className = 'goal-desc';
+            descDiv.textContent = item.description;
+            wrapper.appendChild(descDiv);
+          }
+
+          td.appendChild(wrapper);
+        });
+
+        return td;
+      }
+
+      function buildGoalDescriptionMap(summary) {
+        const map = {};
+
+        if (!summary || !Array.isArray(summary.rows)) {
+          return map;
+        }
+
+        summary.rows.forEach((row) => {
+          if (!Array.isArray(row.cells)) {
+            return;
+          }
+
+          row.cells.forEach((cell) => {
+            if (!Array.isArray(cell)) {
+              return;
+            }
+
+            cell.forEach((item) => {
+              if (item && item.goal && !Object.prototype.hasOwnProperty.call(map, item.goal)) {
+                map[item.goal] = item.description || '';
+              }
+            });
+          });
+        });
+
+        return map;
+      }
+
+      function showToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerHTML = `
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16.6667 5L7.5 14.1667L3.33333 10" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>${message}</span>
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+          toast.remove();
+        }, 3000);
+      }
+
+      function createCopyButton(textToCopy) {
+        const button = document.createElement('button');
+        button.className = 'copy-button';
+        button.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 4V16C8 17.1046 8.89543 18 10 18H18C19.1046 18 20 17.1046 20 16V7.24162C20 6.7034 19.7831 6.18789 19.3982 5.81161L16.6569 3.11612C16.2698 2.73702 15.7484 2.52309 15.2045 2.52309H10C8.89543 2.52309 8 3.41852 8 4.52309V4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M16 18V20C16 21.1046 15.1046 22 14 22H6C4.89543 22 4 21.1046 4 20V9C4 7.89543 4.89543 7 6 7H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        `;
+        button.title = '點擊複製';
+        
+        button.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          try {
+            await navigator.clipboard.writeText(textToCopy);
+            
+            // 添加到剪貼簿歷史記錄（避免重複）
+            if (!clipboardHistory.includes(textToCopy)) {
+              clipboardHistory.push(textToCopy);
+              updateClipboardUI();
+            }
+            
+            showToast('已複製到剪貼簿');
+          } catch (err) {
+            console.error('複製失敗:', err);
+            showToast('複製失敗');
+          }
+        });
+        
+        return button;
+      }
+
+      function renderDetailTable(details, goalDescriptions = {}) {
+        const table = document.createElement('table');
+        table.className = 'detail-table';
+
+        const ageHeaders = Array.isArray(details.ageHeaders) ? details.ageHeaders : [];
+        const goals = Array.isArray(details.goals) ? details.goals : [];
+        
+        // 年齡對應代碼映射
+        const ageToCode = {
+          '2-3歲': '幼',
+          '3-4歲': '小',
+          '4-5歲': '中',
+          '5-6歲': '大'
+        };
+
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+
+        const goalTh = document.createElement('th');
+        goalTh.style.width = '180px';
+        goalTh.textContent = '課程目標';
+        headerRow.appendChild(goalTh);
+
+        ageHeaders.forEach((age) => {
+          const th = document.createElement('th');
+          th.className = 'age-header';
+          th.textContent = age;
+          headerRow.appendChild(th);
+        });
+
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+
+        goals.forEach((goal) => {
+          const indicators = Array.isArray(goal.indicators) ? goal.indicators : [];
+
+          indicators.forEach((indicator, index) => {
+            const tr = document.createElement('tr');
+            
+            if (index === indicators.length - 1) {
+              tr.className = 'goal-group-last';
+            }
+
+            if (index === 0) {
+              const goalTd = document.createElement('td');
+              goalTd.className = 'goal-col';
+              
+              // 添加 ID 用於跳轉
+              if (goal.goalId) {
+                goalTd.id = `goal-${goal.goalId}`;
+              }
+              
+              const goalCode = document.createElement('div');
+              goalCode.className = 'goal-code';
+              goalCode.textContent = goal.goalId || '';
+              goalTd.appendChild(goalCode);
+
+              const goalDescText = goal.goalId && Object.prototype.hasOwnProperty.call(goalDescriptions, goal.goalId)
+                ? goalDescriptions[goal.goalId]
+                : '';
+
+              if (goalDescText) {
+                const goalDesc = document.createElement('div');
+                goalDesc.className = 'goal-desc';
+                goalDesc.textContent = goalDescText;
+                goalTd.appendChild(goalDesc);
+              }
+
+              if (indicators.length > 1) {
+                goalTd.setAttribute('rowspan', indicators.length);
+              }
+              tr.appendChild(goalTd);
+            }
+
+            ageHeaders.forEach((age, ageIndex) => {
+              const descTd = document.createElement('td');
+              descTd.className = 'desc-col';
+              
+              const value = indicator.ages && Object.prototype.hasOwnProperty.call(indicator.ages, age)
+                ? indicator.ages[age]
+                : '';
+              
+              // 如果單元格為空，添加 empty-cell 類
+              if (!value || value.trim() === '') {
+                descTd.classList.add('empty-cell');
+              }
+              
+              // 檢查是否為箭頭指標
+              if (value === '⟶' || value.trim() === '⟶') {
+                descTd.classList.add('arrow-cell');
+                const arrowDiv = document.createElement('div');
+                arrowDiv.className = 'arrow-indicator';
+                descTd.appendChild(arrowDiv);
+                
+                // 為箭頭指標添加複製按鈕（複製延續前一個年齡段的內容）
+                if (indicator.code && ageToCode[age]) {
+                  const adjustedCode = indicator.code.replace(/[幼小中大](\/[幼小中大])*/, ageToCode[age]);
+                  
+                  // 尋找前一個年齡段的描述文字
+                  let previousDesc = '';
+                  for (let i = ageIndex - 1; i >= 0; i--) {
+                    const prevAge = ageHeaders[i];
+                    const prevValue = indicator.ages && Object.prototype.hasOwnProperty.call(indicator.ages, prevAge)
+                      ? indicator.ages[prevAge]
+                      : '';
+                    // 找到第一個不是箭頭的內容
+                    if (prevValue && prevValue !== '⟶' && prevValue.trim() !== '⟶') {
+                      previousDesc = prevValue;
+                      break;
+                    }
+                  }
+                  
+                  // 組合代碼和延續的描述
+                  const copyText = previousDesc ? `${adjustedCode} ${previousDesc}` : adjustedCode;
+                  const copyBtn = createCopyButton(copyText);
+                  descTd.appendChild(copyBtn);
+                }
+              } else if (value) {
+                // 只在有內容時顯示代碼和描述
+                // 根據年齡替換代碼中的幼/小/中/大
+                let adjustedCode = '';
+                if (indicator.code && ageToCode[age]) {
+                  const indicatorCode = document.createElement('div');
+                  indicatorCode.className = 'indicator-code';
+                  // 替換代碼中的 幼/小/中/大 部分
+                  adjustedCode = indicator.code.replace(/[幼小中大](\/[幼小中大])*/, ageToCode[age]);
+                  indicatorCode.textContent = adjustedCode;
+                  descTd.appendChild(indicatorCode);
+                }
+                
+                const desc = document.createElement('div');
+                desc.className = 'indicator-desc';
+                desc.textContent = value;
+                descTd.appendChild(desc);
+                
+                // 添加複製按鈕（直接添加到 td，不是 wrapper）
+                const copyText = adjustedCode ? `${adjustedCode}\n${value}` : value;
+                const copyBtn = createCopyButton(copyText);
+                descTd.appendChild(copyBtn);
+              }
+
+              tr.appendChild(descTd);
+            });
+
+            tbody.appendChild(tr);
+          });
+        });
+
+        table.appendChild(tbody);
+        return table;
+      }
+
+      // ============= 工具列功能 =============
+      
+      function initToolbar() {
+        // 初始化導航選單
+        populateNavSelect();
+        setupScrollListener();
+        
+        // 設置剪貼簿按鈕事件
+        document.getElementById('clipboardBtn').addEventListener('click', (e) => {
+          openClipboardModal(e);
+        });
+        
+        // 點擊 modal 外部關閉
+        document.addEventListener('click', (e) => {
+          const modal = document.getElementById('clipboardModal');
+          const clipboardContent = document.querySelector('.clipboard-content');
+          const clipboardBtn = document.querySelector('.clipboard-btn');
+          
+          if (modal.classList.contains('show') && 
+              !clipboardContent.contains(e.target) && 
+              !clipboardBtn.contains(e.target)) {
+            closeClipboardModal();
+          }
+        });
+        
+        // 全部複製按鈕
+        document.getElementById('copyAllBtn').addEventListener('click', async () => {
+          if (clipboardHistory.length === 0) return;
+          
+          const allText = clipboardHistory.join('\n\n');
+          try {
+            await navigator.clipboard.writeText(allText);
+            showToast(`已複製 ${clipboardHistory.length} 個指標`);
+          } catch (err) {
+            console.error('複製失敗:', err);
+            showToast('複製失敗');
+          }
+        });
+        
+        // 清空按鈕
+        document.getElementById('clearBtn').addEventListener('click', () => {
+          if (confirm('確定要清空所有已複製的指標嗎？')) {
+            clipboardHistory = [];
+            updateClipboardUI();
+            showToast('已清空剪貼簿');
+          }
+        });
+        
+        // 導航選單變更事件
+        document.getElementById('domainNav').addEventListener('change', (e) => {
+          const index = parseInt(e.target.value);
+          if (!isNaN(index) && domainSections[index]) {
+            domainSections[index].element.scrollIntoView({ 
+              behavior: 'smooth',
+              block: 'start'
+            });
+          }
+        });
+      }
+      
+      function populateNavSelect() {
+        const select = document.getElementById('domainNav');
+        select.innerHTML = '<option value="">選擇領域...</option>';
+        
+        domainSections.forEach((section, index) => {
+          const option = document.createElement('option');
+          option.value = index;
+          option.textContent = section.name;
+          select.appendChild(option);
+        });
+      }
+      
+      function setupScrollListener() {
+        let lastScrollTop = 0;
+        let ticking = false;
+        
+        window.addEventListener('scroll', () => {
+          lastScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+          
+          if (!ticking) {
+            window.requestAnimationFrame(() => {
+              updateNavSelect(lastScrollTop);
+              ticking = false;
+            });
+            ticking = true;
+          }
+        });
+      }
+      
+      function updateNavSelect(scrollTop) {
+        const select = document.getElementById('domainNav');
+        const offset = 100; // 偏移量，提前觸發
+        
+        for (let i = domainSections.length - 1; i >= 0; i--) {
+          const section = domainSections[i];
+          const rect = section.element.getBoundingClientRect();
+          const elementTop = rect.top + scrollTop;
+          
+          if (scrollTop >= elementTop - offset) {
+            if (select.value !== i.toString()) {
+              select.value = i.toString();
+            }
+            break;
+          }
+        }
+      }
+      
+      function updateCurrentDomain() {
+        // 获取当前滚动位置
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        // 更新导航选单
+        updateNavSelect(scrollTop);
+      }
+      
+      function openClipboardModal(event) {
+        const modal = document.getElementById('clipboardModal');
+        const content = modal.querySelector('.clipboard-content');
+        
+        // 如果已經打開，則關閉
+        if (modal.classList.contains('show')) {
+          closeClipboardModal();
+          return;
+        }
+        
+        // 獲取按鈕的位置
+        const button = event.currentTarget;
+        const buttonRect = button.getBoundingClientRect();
+        
+        // 計算按鈕中心點
+        const buttonCenterX = buttonRect.left + buttonRect.width / 2;
+        const buttonTop = buttonRect.top;
+        
+        // 設置 modal 位置（以按鈕中心點為基準）
+        content.style.left = `${buttonCenterX}px`;
+        content.style.top = `${buttonTop}px`;
+        
+        modal.classList.add('show');
+        updateClipboardList();
+      }
+      
+      function closeClipboardModal() {
+        const modal = document.getElementById('clipboardModal');
+        
+        // 添加 closing 類來觸發下浮動畫
+        modal.classList.add('closing');
+        
+        // 等待動畫完成後移除 show 和 closing 類
+        setTimeout(() => {
+          modal.classList.remove('show', 'closing');
+        }, 200); // 與動畫時間一致
+      }
+      
+      function updateClipboardUI() {
+        // 更新計數徽章
+        document.getElementById('clipboardCount').textContent = clipboardHistory.length;
+        
+        // 更新按鈕狀態
+        const hasItems = clipboardHistory.length > 0;
+        document.getElementById('copyAllBtn').disabled = !hasItems;
+        document.getElementById('clearBtn').disabled = !hasItems;
+        
+        // 更新剪貼簿列表顯示
+        updateClipboardList();
+      }
+      
+      function updateClipboardList() {
+        const listContainer = document.getElementById('clipboardList');
+        
+        if (clipboardHistory.length === 0) {
+          listContainer.innerHTML = `
+            <div class="clipboard-empty">
+              <div class="clipboard-empty-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width: 48px; height: 48px; fill: #cbd5e0;">
+                  <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 16H5V5h2v3h10V5h2v14z"/>
+                </svg>
+              </div>
+              <div>尚未複製任何指標</div>
+            </div>
+          `;
+          return;
+        }
+        
+        // 創建表格
+        let tableHTML = `
+          <table class="clipboard-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>學習指標內容</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+        
+        clipboardHistory.forEach((item, index) => {
+          tableHTML += `
+            <tr data-index="${index}" title="點擊複製此項">
+              <td>${index + 1}</td>
+              <td>${item}</td>
+            </tr>
+          `;
+        });
+        
+        tableHTML += `
+            </tbody>
+          </table>
+        `;
+        
+        listContainer.innerHTML = tableHTML;
+        
+        // 為每行添加點擊事件
+        listContainer.querySelectorAll('tbody tr').forEach((row, index) => {
+          row.addEventListener('click', async () => {
+            const item = clipboardHistory[index];
+            try {
+              await navigator.clipboard.writeText(item);
+              showToast('已複製');
+            } catch (err) {
+              console.error('複製失敗:', err);
+              showToast('複製失敗');
+            }
+          });
+        });
+      }
+    })();
+  </script>
 </body>
 </html>
