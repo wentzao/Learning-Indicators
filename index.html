@@ -489,6 +489,36 @@
       }
     }
 
+    /* 確認對話框動畫 */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes fadeOut {
+      from {
+        opacity: 1;
+      }
+      to {
+        opacity: 0;
+      }
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
     @keyframes slideDownToButton {
       from {
         transform: translate(-50%, -100%) scale(1);
@@ -751,6 +781,147 @@
         } catch (e) {
           console.log('無法檢測 iframe 環境:', e);
         }
+      }
+
+      // 複製到剪貼簿（帶後備方案）
+      async function copyToClipboard(text) {
+        // 方法 1：嘗試使用現代 Clipboard API
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch (err) {
+          console.log('Clipboard API 失敗，嘗試後備方案:', err);
+        }
+        
+        // 方法 2：使用 execCommand 後備方案（適用於 iframe 環境）
+        try {
+          const textarea = document.createElement('textarea');
+          textarea.value = text;
+          textarea.style.position = 'fixed';
+          textarea.style.left = '-9999px';
+          textarea.style.top = '-9999px';
+          textarea.setAttribute('readonly', '');
+          document.body.appendChild(textarea);
+          
+          // 選擇文字
+          if (navigator.userAgent.match(/ipad|ipod|iphone/i)) {
+            // iOS 設備特殊處理
+            const range = document.createRange();
+            range.selectNodeContents(textarea);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            textarea.setSelectionRange(0, 999999);
+          } else {
+            textarea.select();
+          }
+          
+          // 執行複製
+          const successful = document.execCommand('copy');
+          document.body.removeChild(textarea);
+          
+          return successful;
+        } catch (err) {
+          console.error('複製失敗:', err);
+          return false;
+        }
+      }
+
+      // 自定義確認對話框
+      function showConfirm(message) {
+        return new Promise((resolve) => {
+          // 創建遮罩
+          const overlay = document.createElement('div');
+          overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.2s ease-out;
+          `;
+          
+          // 創建對話框
+          const dialog = document.createElement('div');
+          dialog.style.cssText = `
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 90%;
+            width: 320px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            animation: slideUp 0.3s ease-out;
+          `;
+          
+          dialog.innerHTML = `
+            <div style="font-size: 16px; margin-bottom: 20px; color: #333; line-height: 1.5;">
+              ${message}
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+              <button class="confirm-btn-cancel" style="
+                padding: 10px 20px;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                background: white;
+                color: #666;
+                cursor: pointer;
+                font-size: 14px;
+                transition: all 0.2s;
+              ">取消</button>
+              <button class="confirm-btn-ok" style="
+                padding: 10px 20px;
+                border: none;
+                border-radius: 6px;
+                background: #e74c3c;
+                color: white;
+                cursor: pointer;
+                font-size: 14px;
+                transition: all 0.2s;
+              ">確定</button>
+            </div>
+          `;
+          
+          overlay.appendChild(dialog);
+          document.body.appendChild(overlay);
+          
+          // 按鈕懸停效果
+          const cancelBtn = dialog.querySelector('.confirm-btn-cancel');
+          const okBtn = dialog.querySelector('.confirm-btn-ok');
+          
+          cancelBtn.addEventListener('mouseenter', () => {
+            cancelBtn.style.background = '#f5f5f5';
+          });
+          cancelBtn.addEventListener('mouseleave', () => {
+            cancelBtn.style.background = 'white';
+          });
+          
+          okBtn.addEventListener('mouseenter', () => {
+            okBtn.style.background = '#c0392b';
+          });
+          okBtn.addEventListener('mouseleave', () => {
+            okBtn.style.background = '#e74c3c';
+          });
+          
+          // 事件處理
+          const handleClose = (result) => {
+            overlay.style.animation = 'fadeOut 0.2s ease-out';
+            setTimeout(() => {
+              document.body.removeChild(overlay);
+              resolve(result);
+            }, 200);
+          };
+          
+          cancelBtn.addEventListener('click', () => handleClose(false));
+          okBtn.addEventListener('click', () => handleClose(true));
+          overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) handleClose(false);
+          });
+        });
       }
 
       async function init() {
@@ -1101,9 +1272,9 @@
         
         button.addEventListener('click', async (e) => {
           e.stopPropagation();
-          try {
-            await navigator.clipboard.writeText(textToCopy);
-            
+          const success = await copyToClipboard(textToCopy);
+          
+          if (success) {
             // 添加到剪貼簿歷史記錄（避免重複）
             if (!clipboardHistory.includes(textToCopy)) {
               clipboardHistory.push(textToCopy);
@@ -1111,9 +1282,8 @@
             }
             
             showToast('已複製到剪貼簿');
-          } catch (err) {
-            console.error('複製失敗:', err);
-            showToast('複製失敗');
+          } else {
+            showToast('複製失敗，請稍後再試');
           }
         });
         
@@ -1304,18 +1474,19 @@
           if (clipboardHistory.length === 0) return;
           
           const allText = clipboardHistory.join('\n\n');
-          try {
-            await navigator.clipboard.writeText(allText);
+          const success = await copyToClipboard(allText);
+          
+          if (success) {
             showToast(`已複製 ${clipboardHistory.length} 個指標`);
-          } catch (err) {
-            console.error('複製失敗:', err);
-            showToast('複製失敗');
+          } else {
+            showToast('複製失敗，請稍後再試');
           }
         });
         
         // 清空按鈕
-        document.getElementById('clearBtn').addEventListener('click', () => {
-          if (confirm('確定要清空所有已複製的指標嗎？')) {
+        document.getElementById('clearBtn').addEventListener('click', async () => {
+          const confirmed = await showConfirm('確定要清空所有已複製的指標嗎？');
+          if (confirmed) {
             clipboardHistory = [];
             updateClipboardUI();
             showToast('已清空剪貼簿');
@@ -1488,12 +1659,12 @@
         listContainer.querySelectorAll('tbody tr').forEach((row, index) => {
           row.addEventListener('click', async () => {
             const item = clipboardHistory[index];
-            try {
-              await navigator.clipboard.writeText(item);
+            const success = await copyToClipboard(item);
+            
+            if (success) {
               showToast('已複製');
-            } catch (err) {
-              console.error('複製失敗:', err);
-              showToast('複製失敗');
+            } else {
+              showToast('複製失敗，請稍後再試');
             }
           });
         });
