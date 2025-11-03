@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="utf-8" />
@@ -367,6 +367,18 @@
       transition: all 0.3s ease;
     }
 
+    /* 當嵌入在 iframe 中時，調整工具列位置 */
+    body.in-iframe .floating-toolbar {
+      bottom: 80px; /* 增加底部間距避免被父頁面元素遮擋 */
+    }
+
+    /* iPad 特定調整（使用媒體查詢檢測觸控設備） */
+    @media (hover: none) and (pointer: coarse) {
+      body.in-iframe .floating-toolbar {
+        bottom: 100px; /* iPad 等觸控設備需要更多空間 */
+      }
+    }
+
     .floating-toolbar:hover {
       box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.08);
     }
@@ -713,7 +725,33 @@
       // 領域區塊參考
       let domainSections = [];
 
+      // 檢測是否在 iframe 中（例如嵌入在 Google Site）
+      detectIframeEnvironment();
+
       init();
+
+      function detectIframeEnvironment() {
+        try {
+          // 檢測是否在 iframe 中
+          if (window.self !== window.top) {
+            // 在 iframe 中，添加標記類
+            document.body.classList.add('in-iframe');
+            
+            // 可選：嘗試檢測是否是 Google Site（可能因跨域限制而失敗）
+            try {
+              const parentUrl = window.parent.location.href;
+              if (parentUrl && (parentUrl.includes('sites.google.com') || parentUrl.includes('google.com/site'))) {
+                document.body.classList.add('in-google-site');
+              }
+            } catch (e) {
+              // 跨域限制，無法訪問父頁面 URL
+              // 這是正常情況，不影響功能
+            }
+          }
+        } catch (e) {
+          console.log('無法檢測 iframe 環境:', e);
+        }
+      }
 
       async function init() {
         try {
@@ -1360,7 +1398,7 @@
           return;
         }
         
-        // 獲取按鈕的位置
+        // 獲取按鈕的實際位置（考慮動態調整）
         const button = event.currentTarget;
         const buttonRect = button.getBoundingClientRect();
         
@@ -1368,7 +1406,7 @@
         const buttonCenterX = buttonRect.left + buttonRect.width / 2;
         const buttonTop = buttonRect.top;
         
-        // 設置 modal 位置（以按鈕中心點為基準）
+        // 設置 modal 位置（以按鈕中心點為基準，自動跟隨按鈕位置）
         content.style.left = `${buttonCenterX}px`;
         content.style.top = `${buttonTop}px`;
         
