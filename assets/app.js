@@ -375,18 +375,27 @@
   }
 
   function setAge(age, announce = true) {
+    const currentSection = mobileLayout.matches && announce
+      ? domainSections[Number(document.getElementById('domainNav').value)]?.element
+      : null;
     selectedAge = age;
+    document.getElementById('ageNav').value = age;
     document.querySelectorAll('.age-controls button').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.age === age)));
     document.querySelectorAll('.detail-table [data-age]').forEach(cell => { cell.hidden = age !== 'all' && cell.dataset.age !== age; });
     document.querySelectorAll('.detail-table').forEach(table => table.classList.toggle('filtered', age !== 'all'));
     domainSections.forEach(renderMobileIndicators);
+    // Filtering changes the heights of earlier domains. Keep the chosen
+    // domain in view instead of landing in a different domain after reflow.
+    currentSection?.scrollIntoView({ behavior: 'instant', block: 'start' });
     requestAnimationFrame(updateCurrentDomain);
     if (announce) document.getElementById('filterStatus').textContent = age === 'all' ? '顯示全部年齡學習指標' : `顯示${age}學習指標`;
   }
 
   function initAgeFilters() {
     const controls = document.getElementById('ageFilters');
+    const select = document.getElementById('ageNav');
     controls.replaceChildren();
+    select.replaceChildren();
     for (const age of ['all', ...AGES]) {
       const button = node('button', '', age === 'all' ? '全部' : age.replace('-', '–'));
       button.type = 'button';
@@ -395,7 +404,11 @@
       button.setAttribute('aria-pressed', String(selectedAge === age));
       button.addEventListener('click', () => setAge(age));
       controls.append(button);
+      const option = node('option', '', age === 'all' ? '全部年齡' : age.replace('-', '–'));
+      option.value = age;
+      select.append(option);
     }
+    select.disabled = false;
   }
 
   function setCurrentDomain(index) {
@@ -569,6 +582,7 @@
   document.getElementById('domainNav').addEventListener('change', event => {
     navigateToDomain(Number(event.target.value));
   });
+  document.getElementById('ageNav').addEventListener('change', event => setAge(event.target.value));
   document.getElementById('clipboardBtn').addEventListener('click', () => { updateClipboardUI(); clipboard.showModal(); });
   document.getElementById('closeClipboardBtn').addEventListener('click', () => clipboard.close());
   clipboard.addEventListener('click', event => {
