@@ -279,7 +279,10 @@
   }
 
   function appendIndicator(container, value) {
-    if (value.code) container.append(node('span', 'indicator-code', value.code));
+    const header = node('div', 'indicator-header');
+    if (value.code) header.append(node('span', 'indicator-code', value.code));
+    header.append(createCopyButton(value.text, value.code));
+    container.append(header);
     const description = node('div', 'indicator-desc', value.description || '延續前齡指標');
     if (value.continued) {
       const continuation = node('details', 'continuation');
@@ -291,7 +294,6 @@
     } else {
       container.append(description);
     }
-    container.append(createCopyButton(value.text, value.code));
   }
 
   function renderDetailTable(details, descriptions, title) {
@@ -329,7 +331,12 @@
           td.dataset.age = age;
           const value = resolveIndicator(indicator, age, headers);
           if (value) appendIndicator(td, value);
-          else { td.classList.add('empty-cell'); td.append(node('span', 'empty-dash', '—')); }
+          else {
+            td.classList.add('empty-cell');
+            if (index + 1 < indicators.length && !resolveIndicator(indicators[index + 1], age, headers)) {
+              td.classList.add('empty-cell-joined');
+            }
+          }
           tr.append(td);
         }
         body.append(tr);
