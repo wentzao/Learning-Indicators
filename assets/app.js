@@ -11,7 +11,7 @@
   let domainSections = [];
   let clipboardHistory = [];
   let toastTimer;
-  let observer;
+  let scrollUpdatePending = false;
   let loaded = false;
 
   if (window.self !== window.top) document.body.classList.add('in-iframe');
@@ -72,7 +72,7 @@
           const prefix = mobileLayout.matches ? 'mobile-goal-' : 'goal-';
           const target = document.getElementById(prefix + item.goal);
           if (!target) return;
-          scrollTo(target, 'center');
+          scrollTo(target, mobileLayout.matches ? 'start' : 'center');
           target.setAttribute('tabindex', '-1');
           target.focus({ preventScroll: true });
           target.classList.add('highlight-goal');
@@ -266,18 +266,6 @@
     }
     section.append(node('h3', 'detail-title', '各年齡層學習指標'));
     section.append(node('p', 'detail-hint', '點選複製，整理你的教學指標。'));
-    const controls = node('div', 'age-controls');
-    controls.setAttribute('role', 'group');
-    controls.setAttribute('aria-label', `${domain.title}年齡篩選`);
-    for (const age of ['all', ...AGES]) {
-      const button = node('button', '', age === 'all' ? '全部年齡' : age.replace('-', '–'));
-      button.type = 'button';
-      button.dataset.age = age;
-      button.setAttribute('aria-pressed', String(selectedAge === age));
-      button.addEventListener('click', () => setAge(age));
-      controls.append(button);
-    }
-    section.append(controls);
     const desktop = node('div', 'table-scroll desktop-indicators');
     desktop.tabIndex = 0;
     desktop.setAttribute('role', 'region');
@@ -376,7 +364,22 @@
     document.querySelectorAll('.detail-table [data-age]').forEach(cell => { cell.hidden = age !== 'all' && cell.dataset.age !== age; });
     document.querySelectorAll('.detail-table').forEach(table => table.classList.toggle('filtered', age !== 'all'));
     domainSections.forEach(renderMobileIndicators);
+    requestAnimationFrame(updateCurrentDomain);
     if (announce) document.getElementById('filterStatus').textContent = age === 'all' ? '顯示全部年齡學習指標' : `顯示${age}學習指標`;
+  }
+
+  function initAgeFilters() {
+    const controls = document.getElementById('ageFilters');
+    controls.replaceChildren();
+    for (const age of ['all', ...AGES]) {
+      const button = node('button', '', age === 'all' ? '全部' : age.replace('-', '–'));
+      button.type = 'button';
+      button.dataset.age = age;
+      button.setAttribute('aria-label', age === 'all' ? '全部年齡' : age.replace('-', '–'));
+      button.setAttribute('aria-pressed', String(selectedAge === age));
+      button.addEventListener('click', () => setAge(age));
+      controls.append(button);
+    }
   }
 
   function setCurrentDomain(index) {
@@ -384,6 +387,28 @@
     nav.querySelectorAll('a').forEach((link, i) => {
       if (i === index) link.setAttribute('aria-current', 'location');
       else link.removeAttribute('aria-current');
+    });
+  }
+
+  function updateCurrentDomain() {
+    if (!domainSections.length) return;
+    const sidebar = document.querySelector('.sidebar');
+    const readingLine = mobileLayout.matches
+      ? sidebar.getBoundingClientRect().bottom + 32
+      : Math.min(160, window.innerHeight * .25);
+    let current = 0;
+    domainSections.forEach((entry, index) => {
+      if (entry.element.getBoundingClientRect().top <= readingLine) current = index;
+    });
+    setCurrentDomain(current);
+  }
+
+  function scheduleScrollUpdate() {
+    if (scrollUpdatePending) return;
+    scrollUpdatePending = true;
+    requestAnimationFrame(() => {
+      updateCurrentDomain();
+      scrollUpdatePending = false;
     });
   }
 
@@ -404,15 +429,6 @@
       option.value = index;
       select.append(option);
     });
-    observer?.disconnect();
-    observer = new IntersectionObserver(() => {
-      let current = 0;
-      domainSections.forEach((entry, index) => {
-        if (entry.element.getBoundingClientRect().top < window.innerHeight * .45) current = index;
-      });
-      setCurrentDomain(current);
-    }, { rootMargin: '-10% 0px -45% 0px', threshold: 0 });
-    domainSections.forEach(entry => observer.observe(entry.element));
     setCurrentDomain(0);
     select.disabled = false;
   }
@@ -490,6 +506,7 @@
       domainSections = data.domains.map(renderDomain);
       app.replaceChildren(...domainSections.map(entry => entry.element));
       initNavigation();
+      initAgeFilters();
       setAge(selectedAge, false);
       loaded = true;
     } catch (error) {
@@ -518,6 +535,8 @@
     showToast(await copyToClipboard(clipboardHistory.join('\n\n')) ? `已複製 ${clipboardHistory.length} 個指標` : '複製失敗，請稍後再試');
   });
   const confirmation = document.getElementById('confirmModal');
+  window.addEventListener('scroll', scheduleScrollUpdate, { passive: true });
+  window.addEventListener('resize', scheduleScrollUpdate);
   document.getElementById('clearBtn').addEventListener('click', () => confirmation.showModal());
   document.getElementById('confirmCancel').addEventListener('click', () => confirmation.close());
   document.getElementById('confirmClear').addEventListener('click', () => {

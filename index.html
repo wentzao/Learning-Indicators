@@ -12,27 +12,45 @@
 </head>
 <body>
   <a class="skip-link" href="#app">跳至學習指標</a>
-  <div class="page-shell">
-    <header class="site-header">
-      <div>
-        <h1>學習指標</h1>
-        <p>幼兒園教保活動課程大綱</p>
+  <div class="workspace">
+    <div class="workspace-layout">
+      <aside class="sidebar" aria-label="領域與年齡篩選">
+        <header class="site-header">
+          <div class="brand-logo"><img src="assets/wentzao-logo.webp" alt="文藻美語 WENTZAO SCHOOL" width="1250" height="1667"></div>
+          <div class="brand-title">
+            <h1>學習指標</h1>
+            <p>幼兒園教保活動課程大綱</p>
+          </div>
+        </header>
+        <div class="sidebar-filters">
+          <section class="sidebar-panel domain-panel" aria-labelledby="domainFilterTitle">
+            <h2 class="sidebar-title" id="domainFilterTitle">學習領域</h2>
+            <nav class="domain-nav" id="domainLinks" aria-label="學習領域"></nav>
+            <div class="mobile-domain-field">
+              <label class="sr-only" for="domainNav">跳至學習領域</label>
+              <select class="nav-select" id="domainNav" disabled><option>領域載入中…</option></select>
+            </div>
+          </section>
+          <section class="sidebar-panel age-panel" aria-labelledby="ageFilterTitle">
+            <h2 class="sidebar-title" id="ageFilterTitle">年齡</h2>
+            <div class="age-controls" id="ageFilters" role="group" aria-label="年齡篩選"></div>
+          </section>
+        </div>
+      </aside>
+      <div class="page-shell">
+        <main id="app" tabindex="-1" aria-label="學習指標內容">
+          <p class="status-message" role="status">資料載入中…</p>
+        </main>
+        <noscript><p class="status-message">請啟用 JavaScript 以查閱學習指標。</p></noscript>
+        <p class="site-footer">幼兒園教保活動課程大綱 · 六大領域學習指標</p>
       </div>
-      <nav class="domain-nav" id="domainLinks" aria-label="學習領域"></nav>
-    </header>
-    <main id="app" tabindex="-1" aria-label="學習指標內容">
-      <p class="status-message" role="status">資料載入中…</p>
-    </main>
-    <noscript><p class="status-message">請啟用 JavaScript 以查閱學習指標。</p></noscript>
-    <p class="site-footer">幼兒園教保活動課程大綱 · 六大領域學習指標</p>
+    </div>
   </div>
   <div class="floating-toolbar" role="region" aria-label="指標工具列">
     <button class="clipboard-btn" id="clipboardBtn" type="button" aria-haspopup="dialog">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5" y="5" width="14" height="16" rx="2"/><rect x="9" y="3" width="6" height="4" rx="1" fill="#245c45"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
       <span>已複製 <span class="badge" id="clipboardCount">0</span></span>
     </button>
-    <label class="sr-only" for="domainNav">跳至學習領域</label>
-    <select class="nav-select" id="domainNav" disabled><option>領域載入中…</option></select>
   </div>
   <dialog class="clipboard-modal" id="clipboardModal" aria-labelledby="clipboardTitle">
     <div class="modal-header">
