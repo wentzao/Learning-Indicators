@@ -280,8 +280,17 @@
 
   function appendIndicator(container, value) {
     if (value.code) container.append(node('span', 'indicator-code', value.code));
-    if (value.continued) container.append(node('span', 'continuation', '延續前齡指標'));
-    container.append(node('div', 'indicator-desc', value.description || '延續前齡指標'));
+    const description = node('div', 'indicator-desc', value.description || '延續前齡指標');
+    if (value.continued) {
+      const continuation = node('details', 'continuation');
+      const arrow = node('summary', '', '⟶');
+      arrow.setAttribute('aria-label', `${value.code}：延續前齡指標，查看完整內容`);
+      arrow.title = '延續前齡指標，點選查看完整內容';
+      continuation.append(arrow, description);
+      container.append(continuation);
+    } else {
+      container.append(description);
+    }
     container.append(createCopyButton(value.text, value.code));
   }
 
