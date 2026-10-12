@@ -75,8 +75,6 @@ td:last-child, th:last-child { border-right: 0; }
 .goal-link:hover { text-decoration: underline; text-underline-offset: 4px; }
 .goal-code, .indicator-code { display: block; font-weight: 600; color: var(--green); font-size: 14px; font-variant-numeric: tabular-nums; }
 .summary-table .goal-code { margin-bottom: 4px; }
-.detail-title { margin: 0; font-size: 23px; line-height: 1.4; }
-.detail-hint { margin: 7px 0 24px; color: var(--muted); font-size: 14px; }
 .age-controls { display: flex; flex-direction: column; gap: 10px; }
 .age-controls button { min-width: 0; width: 100%; min-height: 46px; border: 1px solid #ffffffc9; border-radius: 15px; padding: 8px 4px; font-size: 13px; font-weight: 500; background: #ffffff80; color: #3c5246; box-shadow: inset 0 1px 0 #fff; transition: background .16s, box-shadow .16s; }
 .age-controls button[aria-pressed="true"] { background: linear-gradient(145deg, #316e55, #245c45); color: #fff; border-color: #ffffff60; box-shadow: 0 4px 12px #245c451c, inset 0 1px 0 #ffffff28; }
@@ -174,8 +172,6 @@ dialog::backdrop { background: #142b2252; backdrop-filter: blur(4px); -webkit-ba
   .domain-title { font-size: 23px; margin-bottom: 16px; }
   .goal-overview { margin-bottom: 24px; }
   .goal-overview summary { padding: 12px 14px; font-size: 14px; border-radius: 15px; }
-  .detail-title { font-size: 19px; }
-  .detail-hint { font-size: 12px; margin-bottom: 20px; }
   .desktop-indicators { display: none; }
   .mobile-indicators { display: block; }
   .mobile-goal { border: 1px solid #ffffffed; background: #ffffffa6; border-radius: 20px; margin-bottom: 14px; overflow: clip; box-shadow: 0 4px 14px #245c4504, inset 0 1px 0 #fff; scroll-margin-top: calc(260px + env(safe-area-inset-top)); }
@@ -210,7 +206,7 @@ dialog::backdrop { background: #142b2252; backdrop-filter: blur(4px); -webkit-ba
 @media print {
   body { padding: 0; background: white; }
   .page-shell { padding: 0; border: 0; }
-  body::before, .sidebar, .floating-toolbar, .age-controls, .copy-button, .domain-nav, .detail-hint { display: none; }
+  body::before, .sidebar, .floating-toolbar, .age-controls, .copy-button, .domain-nav { display: none; }
   .workspace-layout { display: block; }
   .page-shell { box-shadow: none; }
   .desktop-indicators { display: block; }

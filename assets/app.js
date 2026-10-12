@@ -12,6 +12,8 @@
   let clipboardHistory = [];
   let toastTimer;
   let scrollUpdatePending = false;
+  let navigationTarget = null;
+  let navigationSettleTimer;
   let loaded = false;
 
   if (window.self !== window.top) document.body.classList.add('in-iframe');
@@ -264,8 +266,6 @@
       overview.append(summary, region);
       section.append(overview);
     }
-    section.append(node('h3', 'detail-title', '各年齡層學習指標'));
-    section.append(node('p', 'detail-hint', '點選複製，整理你的教學指標。'));
     const desktop = node('div', 'table-scroll desktop-indicators');
     desktop.tabIndex = 0;
     desktop.setAttribute('role', 'region');
@@ -391,7 +391,7 @@
   }
 
   function updateCurrentDomain() {
-    if (!domainSections.length) return;
+    if (!domainSections.length || navigationTarget !== null) return;
     const sidebar = document.querySelector('.sidebar');
     const readingLine = mobileLayout.matches
       ? sidebar.getBoundingClientRect().bottom + 32
@@ -404,12 +404,44 @@
   }
 
   function scheduleScrollUpdate() {
+    if (navigationTarget !== null) {
+      scheduleNavigationFinish();
+      return;
+    }
     if (scrollUpdatePending) return;
     scrollUpdatePending = true;
     requestAnimationFrame(() => {
       updateCurrentDomain();
       scrollUpdatePending = false;
     });
+  }
+
+  function finishDomainNavigation() {
+    clearTimeout(navigationSettleTimer);
+    navigationTarget = null;
+    updateCurrentDomain();
+  }
+
+  function scheduleNavigationFinish() {
+    clearTimeout(navigationSettleTimer);
+    // Release after scrolling settles, including browsers without scrollend
+    // and clicks on an already aligned section that produce no scroll event.
+    navigationSettleTimer = setTimeout(finishDomainNavigation, 180);
+  }
+
+  function navigateToDomain(index) {
+    const entry = domainSections[index];
+    if (!entry) return;
+    navigationTarget = index;
+    setCurrentDomain(index);
+    scrollTo(entry.element);
+    scheduleNavigationFinish();
+  }
+
+  function interruptDomainNavigation() {
+    if (navigationTarget === null) return;
+    window.scrollTo({ top: window.scrollY, left: window.scrollX, behavior: 'auto' });
+    finishDomainNavigation();
   }
 
   function initNavigation() {
@@ -421,8 +453,7 @@
       link.href = `#domain-${index}`;
       link.addEventListener('click', event => {
         event.preventDefault();
-        scrollTo(entry.element);
-        setCurrentDomain(index);
+        navigateToDomain(index);
       });
       nav.append(link);
       const option = node('option', '', entry.name);
@@ -520,8 +551,7 @@
   }
 
   document.getElementById('domainNav').addEventListener('change', event => {
-    const index = Number(event.target.value);
-    if (domainSections[index]) { scrollTo(domainSections[index].element); setCurrentDomain(index); }
+    navigateToDomain(Number(event.target.value));
   });
   document.getElementById('clipboardBtn').addEventListener('click', () => { updateClipboardUI(); clipboard.showModal(); });
   document.getElementById('closeClipboardBtn').addEventListener('click', () => clipboard.close());
@@ -537,6 +567,12 @@
   const confirmation = document.getElementById('confirmModal');
   window.addEventListener('scroll', scheduleScrollUpdate, { passive: true });
   window.addEventListener('resize', scheduleScrollUpdate);
+  window.addEventListener('wheel', interruptDomainNavigation, { passive: true });
+  window.addEventListener('touchmove', interruptDomainNavigation, { passive: true });
+  window.addEventListener('keydown', event => {
+    if (event.target.closest?.('input, textarea, select, button, [contenteditable]')) return;
+    if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) interruptDomainNavigation();
+  });
   document.getElementById('clearBtn').addEventListener('click', () => confirmation.showModal());
   document.getElementById('confirmCancel').addEventListener('click', () => confirmation.close());
   document.getElementById('confirmClear').addEventListener('click', () => {
