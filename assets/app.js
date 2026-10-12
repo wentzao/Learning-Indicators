@@ -315,7 +315,7 @@
     for (const goal of details.goals || []) {
       const indicators = goal.indicators || [];
       indicators.forEach((indicator, index) => {
-        const tr = node('tr', index === indicators.length - 1 ? 'goal-group-last' : '');
+        const tr = node('tr', index === 0 ? 'goal-group-first' : '');
         if (index === 0) {
           const td = node('td', 'goal-col');
           td.id = `goal-${goal.goalId}`;
